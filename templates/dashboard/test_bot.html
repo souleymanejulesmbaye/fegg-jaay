@@ -1,0 +1,195 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Test Bot{% endblock %}
+
+{% block extra_css %}
+<style>
+  .chat-container {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .chat-box {
+    background: #e5ddd5;
+    border-radius: 8px;
+    padding: 1rem;
+    height: 460px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .bubble {
+    max-width: 75%;
+    padding: 0.55rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .bubble-in {
+    background: white;
+    align-self: flex-start;
+    border-top-left-radius: 2px;
+  }
+  .bubble-out {
+    background: #dcf8c6;
+    align-self: flex-end;
+    border-top-right-radius: 2px;
+  }
+  .bubble-time {
+    font-size: 0.7rem;
+    color: #999;
+    margin-top: 0.2rem;
+    text-align: right;
+  }
+  .bubble-wrapper-in  { display: flex; flex-direction: column; align-items: flex-start; }
+  .bubble-wrapper-out { display: flex; flex-direction: column; align-items: flex-end; }
+  .chat-input-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .chat-input-row input {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    outline: none;
+  }
+  .chat-input-row input:focus { border-color: #25d366; }
+  .chat-input-row button {
+    background: #25d366;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 0.65rem 1.4rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .chat-input-row button:hover { background: #1ebe5a; }
+  .typing-indicator {
+    color: #888;
+    font-size: 0.85rem;
+    font-style: italic;
+    display: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <h2>Test Bot</h2>
+    <form method="post" action="{% url 'dashboard:reset_test_bot' %}"
+          onsubmit="return confirm('Effacer toute la conversation de test ?')">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary" style="font-size:0.8rem;">
+        Effacer la conversation
+      </button>
+    </form>
+  </div>
+
+  <p style="font-size:0.85rem;color:#888;margin-bottom:1rem;">
+    Tapez un message comme si vous étiez un client WhatsApp.
+    Essayez : <em>catalogue</em>, <em>Je veux 2 P2</em>, <em>Je veux annuler</em>, <em>Je m'appelle Mamadou</em>
+  </p>
+
+  <div class="chat-box" id="chatBox">
+    {% for msg in messages_log %}
+    <div class="bubble-wrapper-{% if msg.direction == 'entrant' %}out{% else %}in{% endif %}">
+      <div class="bubble bubble-{% if msg.direction == 'entrant' %}out{% else %}in{% endif %}">{{ msg.contenu }}</div>
+      <div class="bubble-time">{{ msg.created_at|date:"H:i" }}</div>
+    </div>
+    {% empty %}
+    <p style="color:#aaa;font-size:0.85rem;text-align:center;margin-top:2rem;">
+      Aucun message — commencez à écrire !
+    </p>
+    {% endfor %}
+    <div id="typingIndicator" class="bubble-wrapper-in">
+      <div class="bubble bubble-in typing-indicator" id="typingText">Bot en train d'écrire…</div>
+    </div>
+  </div>
+
+  <div class="chat-input-row">
+    <input type="text" id="messageInput" placeholder="Écrivez un message…" autocomplete="off">
+    <button onclick="envoyerMessage()">Envoyer</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = "{{ csrf_token }}";
+const chatBox = document.getElementById("chatBox");
+const input = document.getElementById("messageInput");
+const typingDiv = document.getElementById("typingIndicator");
+const typingText = document.getElementById("typingText");
+
+// Scroll au bas au chargement
+chatBox.scrollTop = chatBox.scrollHeight;
+
+// Envoi sur Entrée
+input.addEventListener("keydown", e => { if (e.key === "Enter") envoyerMessage(); });
+
+function creerBubble(texte, direction, heure) {
+  const wrapper = document.createElement("div");
+  wrapper.className = `bubble-wrapper-${direction}`;
+
+  const bubble = document.createElement("div");
+  bubble.className = `bubble bubble-${direction}`;
+  bubble.textContent = texte;
+
+  const time = document.createElement("div");
+  time.className = "bubble-time";
+  time.textContent = heure;
+
+  wrapper.appendChild(bubble);
+  wrapper.appendChild(time);
+  return wrapper;
+}
+
+function heureNow() {
+  return new Date().toLocaleTimeString("fr-FR", {hour: "2-digit", minute: "2-digit"});
+}
+
+async function envoyerMessage() {
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = "";
+
+  // Afficher message utilisateur
+  const msgOut = creerBubble(msg, "out", heureNow());
+  chatBox.insertBefore(msgOut, typingDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  // Afficher indicateur "Bot écrit"
+  typingText.style.display = "block";
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  try {
+    const resp = await fetch("{% url 'dashboard:test_bot' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": csrfToken,
+      },
+      body: `message=${encodeURIComponent(msg)}`,
+    });
+    const data = await resp.json();
+
+    typingText.style.display = "none";
+
+    const msgIn = creerBubble(data.reponse || data.error || "Erreur", "in", heureNow());
+    chatBox.insertBefore(msgIn, typingDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+  } catch (err) {
+    typingText.style.display = "none";
+    const errBubble = creerBubble("Erreur de connexion.", "in", heureNow());
+    chatBox.insertBefore(errBubble, typingDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+}
+</script>
+{% endblock %}

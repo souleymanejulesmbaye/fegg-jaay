@@ -1,0 +1,63 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Configuration{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:1.5rem;">Configuration de la boutique</h2>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="card">
+    <div class="card-title">Informations générales</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+      <div>
+        <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">Nom de la boutique</label>
+        <input type="text" name="nom" value="{{ boutique.nom }}" required
+               style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">Ville</label>
+        <input type="text" name="ville" value="{{ boutique.ville }}"
+               style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">Téléphone propriétaire (pour les notifications)</label>
+        <input type="text" name="proprietaire_tel" value="{{ boutique.proprietaire_tel }}"
+               style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">Seuil d'alerte stock (tous les produits)</label>
+        <input type="number" name="stock_alerte_global" min="0" placeholder="Laisser vide pour ne pas modifier"
+               style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+        <small style="color:#888;font-size:0.78rem;">Modifie le seuil d'alerte de tous vos produits actifs.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Message de bienvenue</div>
+    <p style="font-size:0.85rem;color:#888;margin-bottom:0.75rem;">
+      Envoyé automatiquement au premier message d'un nouveau client.
+    </p>
+    <textarea name="message_bienvenue" rows="4"
+              style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;resize:vertical;">{{ boutique.message_bienvenue }}</textarea>
+  </div>
+
+  <div class="card" style="background:#f9f9f9;">
+    <div class="card-title">Informations WhatsApp (lecture seule)</div>
+    <p style="font-size:0.85rem;color:#555;">
+      Numéro WhatsApp : <strong>{{ boutique.telephone_wa }}</strong><br>
+      Plan : <strong>{{ boutique.get_plan_display }}</strong><br>
+      {% if boutique.abonnement_fin %}
+      Abonnement jusqu'au : <strong>{{ boutique.abonnement_fin|date:"d/m/Y" }}</strong>
+      {% endif %}
+    </p>
+    <p style="font-size:0.8rem;color:#aaa;margin-top:0.5rem;">Pour modifier le numéro WhatsApp ou le plan, contactez le support.</p>
+  </div>
+
+  <button type="submit" class="btn btn-primary" style="padding:0.7rem 2rem;font-size:1rem;">
+    Enregistrer les modifications
+  </button>
+</form>
+{% endblock %}

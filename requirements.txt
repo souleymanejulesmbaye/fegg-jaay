@@ -1,0 +1,35 @@
+# Django & core
+Django>=5.0
+psycopg2-binary
+python-decouple
+dj-database-url
+gunicorn
+
+# Celery & Redis
+celery
+redis
+django-celery-beat
+django-celery-results
+
+# Claude API (Anthropic)
+anthropic
+
+# WhatsApp / HTTP
+httpx
+requests
+
+# OpenAI Whisper (transcription audio)
+openai
+
+# Cloudinary (médias)
+cloudinary
+django-cloudinary-storage
+
+# Utilitaires
+Pillow
+python-dateutil
+pytz
+whitenoise
+
+# Dev / test
+django-extensions

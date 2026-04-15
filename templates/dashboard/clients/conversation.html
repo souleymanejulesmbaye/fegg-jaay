@@ -1,0 +1,82 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ client.prenom|default:client.telephone }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .chat-wrap { display: flex; flex-direction: column; gap: 0.6rem; padding: 1rem 0; }
+  .bubble { max-width: 75%; padding: 0.6rem 0.9rem; border-radius: 12px; font-size: 0.9rem; line-height: 1.4; }
+  .bubble-in  { background: #f0f0f0; color: #333; align-self: flex-start; border-bottom-left-radius: 3px; }
+  .bubble-out { background: #dcf8c6; color: #333; align-self: flex-end; border-bottom-right-radius: 3px; }
+  .bubble-time { font-size: 0.7rem; color: #888; margin-top: 0.2rem; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1rem;">
+  <a href="{% url 'dashboard:liste_clients' %}">&larr; Retour aux clients</a>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;">
+  <div>
+    <h2>{{ client.prenom|default:"Client inconnu" }}</h2>
+    <p style="color:#555;margin-top:0.25rem;">
+      📱 {{ client.telephone }} &nbsp;·&nbsp;
+      {{ client.get_langue_preferee_display }} &nbsp;·&nbsp;
+      {{ client.total_commandes }} commande{{ client.total_commandes|pluralize }}
+    </p>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;">
+
+  <!-- Conversation -->
+  <div class="card">
+    <div class="card-title">Historique des messages</div>
+    {% if messages_log %}
+    <div class="chat-wrap">
+      {% for msg in messages_log %}
+        {% if msg.direction == "entrant" %}
+        <div>
+          <div class="bubble bubble-in">{{ msg.contenu }}</div>
+          <span class="bubble-time">{{ msg.created_at|date:"d/m H:i" }}</span>
+        </div>
+        {% else %}
+        <div style="align-self:flex-end;text-align:right;">
+          <div class="bubble bubble-out">{{ msg.contenu }}</div>
+          <span class="bubble-time">{{ msg.created_at|date:"d/m H:i" }}</span>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:#888;font-size:0.9rem;">Aucun message enregistré.</p>
+    {% endif %}
+  </div>
+
+  <!-- Commandes du client -->
+  <div>
+    <div class="card">
+      <div class="card-title">Commandes</div>
+      {% if commandes %}
+      {% for c in commandes %}
+      <div style="padding:0.6rem 0;border-bottom:1px solid #eee;">
+        <div style="display:flex;justify-content:space-between;">
+          <strong><a href="{% url 'dashboard:detail_commande' c.pk %}">{{ c.numero_ref }}</a></strong>
+          <span style="font-size:0.75rem;
+            {% if c.statut == 'attente_paiement' %}color:#856404{% elif c.statut == 'payee' %}color:#004085{% elif c.statut == 'livree' %}color:#155724{% else %}color:#888{% endif %}">
+            {{ c.get_statut_display }}
+          </span>
+        </div>
+        <div style="font-size:0.85rem;color:#555;margin-top:0.15rem;">
+          {{ c.montant_formate }} — {{ c.created_at|date:"d/m/Y" }}
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:#888;font-size:0.9rem;">Aucune commande.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

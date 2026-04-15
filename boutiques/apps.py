@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class BoutiquesConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "boutiques"
+    verbose_name = "Boutiques"

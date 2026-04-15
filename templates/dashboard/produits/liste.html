@@ -1,0 +1,68 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Produits{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+  <h2>Produits</h2>
+  <a href="{% url 'dashboard:creer_produit' %}" class="btn btn-primary">+ Nouveau produit</a>
+</div>
+
+<div class="card">
+  {% if produits %}
+  <table>
+    <thead>
+      <tr>
+        <th>Produit</th>
+        <th>Prix</th>
+        <th>Stock</th>
+        <th>Seuil alerte</th>
+        <th>Statut</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in produits %}
+      <tr>
+        <td>
+          <strong>{{ p.nom }}</strong>
+          {% if p.description %}
+          <br><small style="color:#888;">{{ p.description|truncatechars:50 }}</small>
+          {% endif %}
+        </td>
+        <td>{{ p.prix_formate }}</td>
+        <td>
+          <span style="{% if p.stock <= p.stock_alerte %}color:#e67e22;font-weight:600;{% endif %}">
+            {{ p.stock }}
+          </span>
+        </td>
+        <td>{{ p.stock_alerte }}</td>
+        <td>
+          {% if p.actif %}
+            <span class="badge badge-livree">Actif</span>
+          {% else %}
+            <span class="badge badge-annulee">Inactif</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'dashboard:modifier_produit' p.pk %}">Modifier</a>
+          &nbsp;|&nbsp;
+          <form method="post" action="{% url 'dashboard:supprimer_produit' p.pk %}"
+                style="display:inline;"
+                onsubmit="return confirm('Désactiver ce produit ?')">
+            {% csrf_token %}
+            <button type="submit" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:0.9rem;">
+              Désactiver
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#888;">Aucun produit configuré.
+    <a href="{% url 'dashboard:creer_produit' %}">Créez votre premier produit →</a>
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

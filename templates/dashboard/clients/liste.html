@@ -1,0 +1,50 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Clients{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+  <h2>Clients ({{ clients|length }})</h2>
+</div>
+
+<!-- Recherche -->
+<form method="get" style="margin-bottom:1.5rem;display:flex;gap:0.5rem;">
+  <input type="text" name="q" value="{{ recherche }}"
+         placeholder="Rechercher par téléphone ou prénom…"
+         style="flex:1;padding:0.55rem 1rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+  <button type="submit" class="btn btn-primary">Rechercher</button>
+  {% if recherche %}<a href="{% url 'dashboard:liste_clients' %}" class="btn btn-secondary">✕</a>{% endif %}
+</form>
+
+<div class="card">
+  {% if clients %}
+  <table>
+    <thead>
+      <tr>
+        <th>Téléphone</th>
+        <th>Prénom</th>
+        <th>Langue</th>
+        <th>Commandes</th>
+        <th>Depuis le</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in clients %}
+      <tr>
+        <td><strong>{{ c.telephone }}</strong></td>
+        <td>{{ c.prenom|default:"—" }}</td>
+        <td style="font-size:0.85rem;">{{ c.get_langue_preferee_display }}</td>
+        <td>{{ c.total_commandes }}</td>
+        <td style="font-size:0.85rem;color:#888;">{{ c.created_at|date:"d/m/Y" }}</td>
+        <td><a href="{% url 'dashboard:conversation_client' c.pk %}">Conversation</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#888;">Aucun client{% if recherche %} trouvé pour « {{ recherche }} »{% endif %}.</p>
+  {% endif %}
+
+  {% include "dashboard/pagination.html" with page_obj=page_obj %}
+</div>
+{% endblock %}

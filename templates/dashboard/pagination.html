@@ -1,0 +1,17 @@
+{% if page_obj.has_other_pages %}
+<div style="display:flex;justify-content:center;align-items:center;gap:0.4rem;margin-top:1.5rem;">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+     class="btn btn-secondary" style="padding:0.4rem 0.8rem;">&larr;</a>
+  {% endif %}
+
+  <span style="font-size:0.9rem;color:#555;">
+    Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+  </span>
+
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}{% if request.GET.statut %}&statut={{ request.GET.statut }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+     class="btn btn-secondary" style="padding:0.4rem 0.8rem;">&rarr;</a>
+  {% endif %}
+</div>
+{% endif %}

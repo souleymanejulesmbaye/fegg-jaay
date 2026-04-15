@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — Fëgg Jaay</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #075e54;
+           display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .login-card {
+      background: white; border-radius: 12px; padding: 2.5rem;
+      width: 100%; max-width: 380px; box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    }
+    h1 { text-align: center; margin-bottom: 0.25rem; font-size: 1.5rem; }
+    .subtitle { text-align: center; color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+    input {
+      width: 100%; padding: 0.65rem 0.9rem; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 0.95rem; margin-bottom: 1.2rem;
+    }
+    input:focus { outline: none; border-color: #25d366; }
+    button {
+      width: 100%; padding: 0.75rem; background: #25d366; color: white;
+      border: none; border-radius: 6px; font-size: 1rem; font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #1ebe5a; }
+    .error { background: #f8d7da; color: #721c24; padding: 0.6rem; border-radius: 5px;
+             font-size: 0.85rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+<div class="login-card">
+  <h1>🛍 Fëgg Jaay</h1>
+  <p class="subtitle">Dashboard commerçant</p>
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="error">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <label for="username">Téléphone / Identifiant</label>
+    <input type="text" id="username" name="username" placeholder="221771234567" required autofocus>
+
+    <label for="password">Mot de passe</label>
+    <input type="password" id="password" name="password" required>
+
+    <button type="submit">Se connecter</button>
+  </form>
+</div>
+</body>
+</html>

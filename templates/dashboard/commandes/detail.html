@@ -1,0 +1,94 @@
+{% extends "dashboard/base.html" %}
+{% block title %}{{ commande.numero_ref }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1rem;">
+  <a href="{% url 'dashboard:liste_commandes' %}">&larr; Retour aux commandes</a>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;">
+  <div>
+    <h2>Commande {{ commande.numero_ref }}</h2>
+    <small style="color:#888;">{{ commande.created_at|date:"d/m/Y à H:i" }}</small>
+  </div>
+  <div>
+    {% if commande.statut == "attente_paiement" %}
+      <span class="badge badge-attente" style="font-size:1rem;padding:0.4rem 1rem;">{{ commande.get_statut_display }}</span>
+    {% elif commande.statut == "payee" %}
+      <span class="badge badge-payee" style="font-size:1rem;padding:0.4rem 1rem;">{{ commande.get_statut_display }}</span>
+    {% elif commande.statut == "en_preparation" %}
+      <span class="badge badge-preparation" style="font-size:1rem;padding:0.4rem 1rem;">{{ commande.get_statut_display }}</span>
+    {% elif commande.statut == "livree" %}
+      <span class="badge badge-livree" style="font-size:1rem;padding:0.4rem 1rem;">{{ commande.get_statut_display }}</span>
+    {% else %}
+      <span class="badge badge-annulee" style="font-size:1rem;padding:0.4rem 1rem;">{{ commande.get_statut_display }}</span>
+    {% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+  <!-- Infos client -->
+  <div class="card">
+    <div class="card-title">Client</div>
+    <p><strong>{{ commande.client.prenom|default:"Nom inconnu" }}</strong></p>
+    <p style="color:#555;">📱 {{ commande.client.telephone }}</p>
+    <p style="color:#555;font-size:0.85rem;">
+      Langue : {{ commande.client.get_langue_preferee_display }} |
+      Total commandes : {{ commande.client.total_commandes }}
+    </p>
+    {% if commande.adresse_livraison %}
+    <p style="margin-top:0.5rem;color:#555;">📍 {{ commande.adresse_livraison }}</p>
+    {% endif %}
+  </div>
+
+  <!-- Changer le statut -->
+  <div class="card">
+    <div class="card-title">Changer le statut</div>
+    <form method="post" action="{% url 'dashboard:changer_statut' commande.pk %}">
+      {% csrf_token %}
+      <select name="statut"
+              style="width:100%;padding:0.65rem;border:1px solid #ddd;border-radius:5px;margin-bottom:1rem;font-size:0.9rem;">
+        {% for code, label in commande.STATUT_CHOICES %}
+        <option value="{{ code }}" {% if commande.statut == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Valider le statut</button>
+    </form>
+    {% if commande.notes %}
+    <p style="margin-top:1rem;font-size:0.85rem;color:#888;"><em>Notes : {{ commande.notes }}</em></p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Lignes de commande -->
+<div class="card">
+  <div class="card-title">Produits commandés</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Produit</th>
+        <th>Quantité</th>
+        <th>Prix unitaire</th>
+        <th>Sous-total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ligne in commande.lignes.all %}
+      <tr>
+        <td>{{ ligne.produit.nom }}</td>
+        <td>{{ ligne.quantite }}</td>
+        <td>{{ ligne.prix_unitaire|floatformat:0 }} FCFA</td>
+        <td><strong>{{ ligne.sous_total_formate }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="background:#f5f5f5;">
+        <td colspan="3" style="text-align:right;font-weight:600;">Total</td>
+        <td style="font-weight:700;font-size:1.1rem;">{{ commande.montant_formate }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% endblock %}

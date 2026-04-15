@@ -1,0 +1,179 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Accueil{% endblock %}
+
+{% block extra_css %}
+<style>
+  .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  @media (max-width: 750px) { .chart-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom:1.5rem;">
+  Bonjour — {{ boutique.nom }}
+  <small style="font-size:0.75rem;color:#888;font-weight:400;"> {{ maintenant|date:"d/m/Y H:i" }}</small>
+</h2>
+
+<!-- Stats du jour -->
+<div class="stats-grid" style="margin-bottom:2rem;">
+  <div class="stat-card">
+    <div class="stat-number">{{ stats.commandes_jour }}</div>
+    <div class="stat-label">Commandes du jour</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ stats.commandes_payees_jour }}</div>
+    <div class="stat-label">Commandes payées</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="font-size:1.4rem;">
+      {{ stats.ca_jour|floatformat:0 }} <span style="font-size:0.9rem;">FCFA</span>
+    </div>
+    <div class="stat-label">Chiffre d'affaires</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:{% if stats.commandes_en_attente > 0 %}#e67e22{% else %}#075e54{% endif %}">
+      {{ stats.commandes_en_attente }}
+    </div>
+    <div class="stat-label">En attente de paiement</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ stats.clients_total }}</div>
+    <div class="stat-label">Clients total</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:{% if stats.produits_stock_bas > 0 %}#e74c3c{% else %}#075e54{% endif %}">
+      {{ stats.produits_stock_bas }}
+    </div>
+    <div class="stat-label">Produits stock bas</div>
+  </div>
+</div>
+
+<!-- Alertes stock -->
+{% if produits_bas %}
+<div class="alert-stock" style="margin-bottom:2rem;">
+  ⚠️ <strong>Stock bas :</strong>
+  {% for p in produits_bas %}
+    <strong>{{ p.nom }}</strong> ({{ p.stock }} restant{% if p.stock > 1 %}s{% endif %}){% if not forloop.last %}, {% endif %}
+  {% endfor %}
+  — <a href="{% url 'dashboard:liste_produits' %}">Gérer les produits</a>
+</div>
+{% endif %}
+
+<!-- Graphique 7 jours + Top produits -->
+<div class="chart-grid">
+  <div class="card">
+    <div class="card-title">Commandes — 7 derniers jours</div>
+    <canvas id="chartCommandes" height="120"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">Top produits vendus</div>
+    {% if top_produits %}
+    <table>
+      <thead>
+        <tr><th>Produit</th><th style="text-align:right;">Vendus</th></tr>
+      </thead>
+      <tbody>
+        {% for p in top_produits %}
+        <tr>
+          <td>{{ p.produit__nom }}</td>
+          <td style="text-align:right;font-weight:600;">{{ p.total_vendu }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#888;font-size:0.85rem;">Aucune vente enregistrée.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Dernières commandes -->
+<div class="card">
+  <div class="card-title">Dernières commandes</div>
+  {% if dernieres_commandes %}
+  <table>
+    <thead>
+      <tr>
+        <th>Réf.</th>
+        <th>Client</th>
+        <th>Montant</th>
+        <th>Statut</th>
+        <th>Date</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in dernieres_commandes %}
+      <tr>
+        <td><strong>{{ c.numero_ref }}</strong></td>
+        <td>{{ c.client.prenom|default:c.client.telephone }}</td>
+        <td>{{ c.montant_formate }}</td>
+        <td>
+          {% if c.statut == "attente_paiement" %}
+            <span class="badge badge-attente">{{ c.get_statut_display }}</span>
+          {% elif c.statut == "payee" %}
+            <span class="badge badge-payee">{{ c.get_statut_display }}</span>
+          {% elif c.statut == "en_preparation" %}
+            <span class="badge badge-preparation">{{ c.get_statut_display }}</span>
+          {% elif c.statut == "livree" %}
+            <span class="badge badge-livree">{{ c.get_statut_display }}</span>
+          {% else %}
+            <span class="badge badge-annulee">{{ c.get_statut_display }}</span>
+          {% endif %}
+        </td>
+        <td style="font-size:0.85rem;color:#888;">{{ c.created_at|date:"d/m H:i" }}</td>
+        <td><a href="{% url 'dashboard:detail_commande' c.pk %}">Voir</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#888;font-size:0.9rem;">Aucune commande pour le moment.</p>
+  {% endif %}
+  <div style="margin-top:1rem;">
+    <a href="{% url 'dashboard:liste_commandes' %}" class="btn btn-secondary">Voir toutes les commandes</a>
+    <a href="{% url 'dashboard:creer_produit' %}" class="btn btn-primary" style="margin-left:0.5rem;">+ Ajouter un produit</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  const ctx = document.getElementById("chartCommandes").getContext("2d");
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: {{ jours_labels|safe }},
+      datasets: [{
+        label: "Commandes",
+        data: {{ jours_nb|safe }},
+        backgroundColor: "#25d36688",
+        borderColor: "#25d366",
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterLabel: (ctx) => {
+              const ca = {{ jours_ca|safe }}[ctx.dataIndex];
+              return "CA : " + ca.toLocaleString("fr-FR") + " FCFA";
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1 },
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Commandes{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+  <h2>Commandes</h2>
+  <a href="{% url 'dashboard:exporter_commandes' %}{% if statut_filtre %}?statut={{ statut_filtre }}{% endif %}"
+     class="btn btn-secondary" style="font-size:0.85rem;">⬇ Export CSV</a>
+</div>
+
+<!-- Recherche -->
+<form method="get" style="margin-bottom:1rem;display:flex;gap:0.5rem;">
+  {% if statut_filtre %}<input type="hidden" name="statut" value="{{ statut_filtre }}">{% endif %}
+  <input type="text" name="q" value="{{ recherche }}"
+         placeholder="Rechercher par réf., téléphone, prénom…"
+         style="flex:1;padding:0.55rem 1rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+  <button type="submit" class="btn btn-primary">Rechercher</button>
+  {% if recherche %}<a href="?{% if statut_filtre %}statut={{ statut_filtre }}{% endif %}" class="btn btn-secondary">✕</a>{% endif %}
+</form>
+
+<!-- Filtre par statut -->
+<div style="margin-bottom:1.5rem;">
+  <a href="{% url 'dashboard:liste_commandes' %}{% if recherche %}?q={{ recherche }}{% endif %}"
+     class="btn {% if not statut_filtre %}btn-primary{% else %}btn-secondary{% endif %}"
+     style="margin-right:0.3rem;">Toutes</a>
+  {% for code, label in statuts %}
+  <a href="?statut={{ code }}{% if recherche %}&q={{ recherche }}{% endif %}"
+     class="btn {% if statut_filtre == code %}btn-primary{% else %}btn-secondary{% endif %}"
+     style="margin-right:0.3rem;font-size:0.8rem;">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  {% if commandes %}
+  <table>
+    <thead>
+      <tr>
+        <th>Réf.</th>
+        <th>Client</th>
+        <th>Montant</th>
+        <th>Paiement</th>
+        <th>Statut</th>
+        <th>Date</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in commandes %}
+      <tr>
+        <td><strong>{{ c.numero_ref }}</strong></td>
+        <td>
+          {{ c.client.prenom|default:"" }}
+          <br><small style="color:#888;">{{ c.client.telephone }}</small>
+        </td>
+        <td><strong>{{ c.montant_formate }}</strong></td>
+        <td style="font-size:0.85rem;">{{ c.get_mode_paiement_display|default:"—" }}</td>
+        <td>
+          {% if c.statut == "attente_paiement" %}
+            <span class="badge badge-attente">{{ c.get_statut_display }}</span>
+          {% elif c.statut == "payee" %}
+            <span class="badge badge-payee">{{ c.get_statut_display }}</span>
+          {% elif c.statut == "en_preparation" %}
+            <span class="badge badge-preparation">{{ c.get_statut_display }}</span>
+          {% elif c.statut == "livree" %}
+            <span class="badge badge-livree">{{ c.get_statut_display }}</span>
+          {% else %}
+            <span class="badge badge-annulee">{{ c.get_statut_display }}</span>
+          {% endif %}
+        </td>
+        <td style="font-size:0.85rem;color:#888;">{{ c.created_at|date:"d/m/Y H:i" }}</td>
+        <td><a href="{% url 'dashboard:detail_commande' c.pk %}">Détail</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#888;">Aucune commande{% if statut_filtre %} avec ce statut{% endif %}.</p>
+  {% endif %}
+
+  {% include "dashboard/pagination.html" with page_obj=page_obj %}
+</div>
+{% endblock %}
