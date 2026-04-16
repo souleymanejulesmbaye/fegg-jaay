@@ -18,6 +18,4 @@ COPY . .
 EXPOSE 8000
 
 # Au démarrage : migrate + collectstatic + gunicorn (les env vars sont dispo ici)
-CMD python manage.py migrate --noinput && \
-    python manage.py collectstatic --noinput && \
-    gunicorn fegg_jaay.wsgi:application --bind 0.0.0.0:$PORT --workers 2
+CMD ["/bin/sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && exec gunicorn fegg_jaay.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2"]
