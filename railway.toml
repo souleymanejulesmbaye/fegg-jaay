@@ -1,8 +1,7 @@
 [build]
-builder = "nixpacks"
+builder = "dockerfile"
 
 [deploy]
-startCommand = "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn fegg_jaay.wsgi:application --bind 0.0.0.0:$PORT --workers 2"
 healthcheckPath = "/login/"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
