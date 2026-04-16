@@ -3,23 +3,18 @@ Webhook WhatsApp pour Fëgg Jaay.
 
 Endpoints :
   GET  /wa/webhook/  → vérification du webhook (Meta challenge)
-  POST /wa/webhook/  → réception des messages entrants
+  POST /wa/webhook/  → réception des messages entrants (Twilio sandbox)
 
-Le POST valide la signature HMAC-SHA256, puis délègue le traitement
-à Celery pour rester sous les 15 secondes exigées par Meta.
+En mode DEBUG, le traitement est synchrone (pas besoin de Celery).
+En production, délègue à Celery.
 """
 
-import hashlib
-import hmac
-import json
 import logging
 
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-
-from .tasks import traiter_message_entrant
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +27,12 @@ def webhook(request):
     return _recevoir_message(request)
 
 
-# ─── Vérification initiale du webhook (Meta) ──────────────────────────────────
+# ─── Vérification initiale du webhook (Meta/Twilio) ──────────────────────────
 
 def _verifier_webhook(request):
     """
     Meta envoie un GET avec hub.mode=subscribe, hub.verify_token et hub.challenge.
-    On répond avec hub.challenge si le token correspond.
+    Twilio ne fait pas de vérification GET — on répond juste 200.
     """
     mode = request.GET.get("hub.mode")
     token = request.GET.get("hub.verify_token")
@@ -47,124 +42,139 @@ def _verifier_webhook(request):
         logger.info("Webhook WhatsApp vérifié avec succès.")
         return HttpResponse(challenge, content_type="text/plain", status=200)
 
-    logger.warning("Échec vérification webhook : token invalide.")
-    return HttpResponse("Token invalide", status=403)
+    # Twilio — simple ping GET
+    return HttpResponse("OK", status=200)
 
 
-# ─── Réception des messages entrants ─────────────────────────────────────────
+# ─── Réception des messages entrants (Twilio) ────────────────────────────────
 
 def _recevoir_message(request):
     """
-    Valide la signature HMAC-SHA256, extrait le message et délègue à Celery.
-    Retourne toujours 200 rapidement pour éviter les relances Meta.
+    Extrait le message depuis le POST Twilio (form data) et le traite.
+    En DEBUG : traitement synchrone direct.
+    En production : délègue à Celery.
     """
-    # 1. Validation signature
-    if not _signature_valide(request):
-        logger.warning("Signature HMAC invalide — message rejeté.")
-        return HttpResponse("Signature invalide", status=403)
+    # Twilio envoie du form data, pas du JSON
+    from_number = request.POST.get("From", "")   # ex: "whatsapp:+221771234567"
+    to_number = request.POST.get("To", "")       # ex: "whatsapp:+14155238886"
+    body = request.POST.get("Body", "")
+    message_sid = request.POST.get("MessageSid", "")
+    num_media = int(request.POST.get("NumMedia", 0))
 
-    # 2. Parsing JSON
-    try:
-        payload = json.loads(request.body)
-    except json.JSONDecodeError:
-        logger.error("Payload JSON invalide reçu sur le webhook.")
-        return HttpResponse("JSON invalide", status=400)
+    if not from_number:
+        logger.warning("Webhook reçu sans champ 'From' — ignoré.")
+        return HttpResponse("OK", status=200)
 
-    logger.debug("Payload webhook reçu : %s", json.dumps(payload)[:500])
+    # Nettoyer les numéros (enlever "whatsapp:")
+    client_tel = from_number.replace("whatsapp:", "").replace("+", "")
+    boutique_tel = to_number.replace("whatsapp:", "")
 
-    # 3. Extraire les messages de la structure Meta
-    try:
-        messages = _extraire_messages(payload)
-    except Exception as exc:
-        logger.error("Erreur lors de l'extraction des messages : %s", exc)
-        return JsonResponse({"status": "ok"}, status=200)
+    # Déterminer le type de message
+    if num_media > 0:
+        media_type = request.POST.get("MediaContentType0", "")
+        if "audio" in media_type:
+            type_msg = "audio"
+            contenu = request.POST.get("MediaUrl0", "")
+        elif "image" in media_type:
+            type_msg = "image"
+            contenu = request.POST.get("MediaUrl0", "")
+        else:
+            type_msg = "document"
+            contenu = request.POST.get("MediaUrl0", "")
+    else:
+        type_msg = "text"
+        contenu = body
 
-    # 4. Déléguer chaque message à Celery (async, non bloquant)
-    for msg_data in messages:
-        traiter_message_entrant.delay(msg_data)
-        logger.info(
-            "Message traité — boutique_tel=%s client=%s",
-            msg_data.get("boutique_telephone_wa"),
-            msg_data.get("client_telephone"),
-        )
+    logger.info(
+        "Message Twilio reçu — from=%s to=%s body=%s...",
+        from_number, to_number, body[:50],
+    )
 
-    return JsonResponse({"status": "ok"}, status=200)
-
-
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-
-def _signature_valide(request) -> bool:
-    """
-    Vérifie la signature X-Hub-Signature-256 envoyée par Meta.
-    En développement (DEBUG=True et pas de secret configuré), on laisse passer.
-    """
-    # En développement, on bypasse la vérification de signature
-    if settings.DEBUG:
-        logger.debug("Mode DEBUG — vérification signature HMAC ignorée.")
-        return True
-
-    app_secret = settings.WA_APP_SECRET
-    if not app_secret:
-        return False
-
-    signature_header = request.headers.get("X-Hub-Signature-256", "")
-    if not signature_header.startswith("sha256="):
-        return False
-
-    signature_recue = signature_header[7:]  # retire "sha256="
-    signature_calculee = hmac.new(
-        app_secret.encode("utf-8"),
-        msg=request.body,
-        digestmod=hashlib.sha256,
-    ).hexdigest()
-
-    return hmac.compare_digest(signature_calculee, signature_recue)
-
-
-def _extraire_messages(payload: dict) -> list[dict]:
-    """
-    Extrait les messages utiles de la structure de payload Meta/360dialog.
-
-    Retourne une liste de dicts avec les champs nécessaires à Celery :
-    {
-        "boutique_telephone_wa": str,   # le numéro WhatsApp de la boutique
-        "client_telephone": str,        # le numéro du client
-        "wa_message_id": str,
-        "type_message": str,            # text / audio / image / document
-        "contenu": str,                 # texte ou media_id
-        "timestamp": str,
+    msg_data = {
+        "boutique_telephone_wa": boutique_tel,
+        "client_telephone": client_tel,
+        "wa_message_id": message_sid,
+        "type_message": type_msg,
+        "contenu": contenu,
+        "timestamp": "",
     }
+
+    if settings.DEBUG:
+        # Traitement synchrone en développement (pas besoin de Celery)
+        _traiter_message_sync(msg_data)
+    else:
+        from .tasks import traiter_message_entrant
+        traiter_message_entrant.delay(msg_data)
+
+    # Twilio attend toujours un 200 rapide
+    return HttpResponse("OK", status=200)
+
+
+# ─── Traitement synchrone (mode DEBUG) ───────────────────────────────────────
+
+def _traiter_message_sync(msg_data: dict):
     """
-    messages_extraits = []
+    Version synchrone de traiter_message_entrant pour le développement local.
+    Évite d'avoir besoin de Celery/Redis pour tester.
+    """
+    from boutiques.models import Boutique, Client, MessageLog
+    from .bot_engine import traiter_message
+    from .sender import envoyer_message_texte, envoyer_message_bienvenue
 
-    for entry in payload.get("entry", []):
-        for change in entry.get("changes", []):
-            value = change.get("value", {})
+    boutique_tel = msg_data.get("boutique_telephone_wa", "")
+    client_tel = msg_data.get("client_telephone", "")
+    wa_message_id = msg_data.get("wa_message_id", "")
+    type_msg = msg_data.get("type_message", "text")
+    contenu = msg_data.get("contenu", "")
 
-            # Numéro de téléphone de la boutique (metadata)
-            boutique_tel = value.get("metadata", {}).get("display_phone_number", "")
+    try:
+        boutique = Boutique.objects.get(telephone_wa=boutique_tel, actif=True)
+    except Boutique.DoesNotExist:
+        logger.warning(
+            "Boutique introuvable pour le numéro '%s'. "
+            "Configurez telephone_wa=%s dans le dashboard.",
+            boutique_tel, boutique_tel,
+        )
+        return
 
-            for msg in value.get("messages", []):
-                type_msg = msg.get("type", "text")
+    # Déduplication
+    if wa_message_id and MessageLog.objects.filter(wa_message_id=wa_message_id).exists():
+        logger.info("Message %s déjà traité — ignoré.", wa_message_id)
+        return
 
-                # Extraction du contenu selon le type
-                contenu = ""
-                if type_msg == "text":
-                    contenu = msg.get("text", {}).get("body", "")
-                elif type_msg == "audio":
-                    contenu = msg.get("audio", {}).get("id", "")  # media_id
-                elif type_msg == "image":
-                    contenu = msg.get("image", {}).get("id", "")
-                elif type_msg == "document":
-                    contenu = msg.get("document", {}).get("id", "")
+    client, created = Client.objects.get_or_create(
+        boutique=boutique,
+        telephone=client_tel,
+        defaults={"langue_preferee": "fr"},
+    )
 
-                messages_extraits.append({
-                    "boutique_telephone_wa": boutique_tel,
-                    "client_telephone": msg.get("from", ""),
-                    "wa_message_id": msg.get("id", ""),
-                    "type_message": type_msg,
-                    "contenu": contenu,
-                    "timestamp": msg.get("timestamp", ""),
-                })
+    MessageLog.objects.create(
+        boutique=boutique,
+        telephone_client=client_tel,
+        direction="entrant",
+        contenu=contenu,
+        type_message=type_msg,
+        wa_message_id=wa_message_id,
+    )
 
-    return messages_extraits
+    if created:
+        envoyer_message_bienvenue(boutique, client_tel)
+        return
+
+    reponse = traiter_message(
+        boutique=boutique,
+        client=client,
+        message=contenu,
+        type_message=type_msg,
+    )
+
+    MessageLog.objects.create(
+        boutique=boutique,
+        telephone_client=client_tel,
+        direction="sortant",
+        contenu=reponse,
+        type_message="text",
+    )
+
+    envoyer_message_texte(boutique, client_tel, reponse)
+    logger.info("Réponse envoyée à %s : %s...", client_tel, reponse[:80])

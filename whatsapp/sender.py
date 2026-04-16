@@ -1,20 +1,34 @@
 """
 Sender WhatsApp — Fëgg Jaay.
 
-Envoie des messages via l'API 360dialog (WhatsApp Business API).
-Chaque boutique a son propre wa_token et wa_phone_id (multi-tenant).
+Envoie des messages via l'API Twilio (WhatsApp Sandbox pour les tests).
 """
 
 import logging
-from typing import Optional
 
 import httpx
+from django.conf import settings
+
 from boutiques.models import Boutique
 
 logger = logging.getLogger(__name__)
 
-# URL de base de l'API 360dialog
-BASE_URL = "https://waba.360dialog.io/v1"
+TWILIO_ACCOUNT_SID = getattr(settings, "TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = getattr(settings, "TWILIO_AUTH_TOKEN", "")
+TWILIO_WHATSAPP_FROM = getattr(settings, "TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+
+
+def _normaliser_telephone(telephone: str) -> str:
+    """
+    Formate le numéro pour Twilio : 'whatsapp:+221771234567'
+    Accepte : '221771234567', '+221771234567', '771234567'
+    """
+    t = telephone.strip().replace(" ", "").replace("-", "")
+    if t.startswith("whatsapp:"):
+        return t
+    if not t.startswith("+"):
+        t = "+" + t
+    return f"whatsapp:{t}"
 
 
 def envoyer_message_texte(
@@ -23,35 +37,37 @@ def envoyer_message_texte(
     texte: str,
 ) -> bool:
     """
-    Envoie un message texte WhatsApp depuis le numéro de la boutique.
+    Envoie un message texte WhatsApp via Twilio.
 
     Args:
-        boutique: instance Boutique (contient wa_token et wa_phone_id)
+        boutique: instance Boutique (non utilisé pour Twilio sandbox, gardé pour compatibilité)
         telephone_destinataire: numéro avec indicatif, ex: "221771234567"
         texte: contenu du message
 
     Returns:
         True si l'envoi a réussi, False sinon
     """
-    url = f"{BASE_URL}/messages"
-    headers = {
-        "D360-API-KEY": boutique.wa_token,
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": telephone_destinataire,
-        "type": "text",
-        "text": {"body": texte},
-    }
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        logger.warning("Twilio non configuré — message non envoyé à %s", telephone_destinataire)
+        return False
+
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json"
+    destinataire = _normaliser_telephone(telephone_destinataire)
 
     try:
         with httpx.Client(timeout=10.0) as client:
-            response = client.post(url, json=payload, headers=headers)
+            response = client.post(
+                url,
+                auth=(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN),
+                data={
+                    "From": TWILIO_WHATSAPP_FROM,
+                    "To": destinataire,
+                    "Body": texte,
+                },
+            )
             response.raise_for_status()
             logger.info(
-                "Message envoyé à %s depuis boutique %s",
+                "Message envoyé à %s (boutique %s)",
                 telephone_destinataire,
                 boutique.nom,
             )

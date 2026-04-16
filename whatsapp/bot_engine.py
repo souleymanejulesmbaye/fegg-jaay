@@ -57,7 +57,7 @@ Tu dois TOUJOURS répondre avec un JSON valide (et uniquement du JSON) :
 Note : "produits" est une liste — tu peux inclure plusieurs produits si le client en commande plusieurs.
 
 Intent "commande" : le client veut acheter quelque chose.
-Intent "catalogue" : le client demande les produits disponibles.
+Intent "catalogue" : le client demande les produits disponibles. Dans ce cas, le champ "reponse" DOIT lister TOUS les produits du catalogue avec leur nom et prix, par exemple : "Voici nos produits :\n- chaussure : 12 500 FCFA\n- sac en cuire : 30 000 FCFA\n- tissu wax : 65 000 FCFA\nTapez le nom du produit pour commander."
 Intent "paiement" : le client a payé ou envoie une preuve de paiement.
 Intent "livraison" : le client demande où en est sa commande.
 Intent "annulation" : le client veut annuler sa commande en cours.
@@ -188,11 +188,24 @@ def _simuler_reponse(message: str, system_prompt: str) -> str:
 
     # ── Extraction des produits depuis le catalogue ───────────────────────
     produits_catalogue = []
+    produits_avec_prix = []
+    noms_vus = set()
+    in_catalogue = False
     for ligne in system_prompt.split("\n"):
-        if ligne.strip().startswith("- "):
-            nom = ligne.strip()[2:].split(":")[0].strip()
-            if nom:
+        if "=== CATALOGUE ===" in ligne:
+            in_catalogue = True
+            continue
+        if "===" in ligne and "CATALOGUE" not in ligne:
+            in_catalogue = False
+        if in_catalogue and ligne.strip().startswith("- ") and "FCFA" in ligne:
+            parties = ligne.strip()[2:].split(":")
+            nom = parties[0].strip()
+            prix_match = re.search(r"([\d,]+)\s*FCFA", ligne)
+            prix = prix_match.group(0) if prix_match else ""
+            if nom and nom not in noms_vus:
+                noms_vus.add(nom)
                 produits_catalogue.append(nom)
+                produits_avec_prix.append(f"• {nom} : {prix}")
 
     # Cherche TOUS les produits mentionnés avec leur quantité
     produits_trouves = _extraire_multi_produits(msg, produits_catalogue)
@@ -210,9 +223,10 @@ def _simuler_reponse(message: str, system_prompt: str) -> str:
     cat_wo = ["li am", "yëgël", "jënd lool", "catalogue"]
     if any(m in msg for m in cat_fr + cat_wo):
         intro = f"Bonjour {prenom_client} ! " if prenom_client else ""
-        texte = (f"{intro}Yëgël yi am ! Bind nom bi ci yëgël yi ngir commande."
+        liste = "\n".join(produits_avec_prix) if produits_avec_prix else "Aucun produit disponible."
+        texte = (f"{intro}Yëgël yi am :\n{liste}\n\nBind nom bi ci yëgël yi ngir commande."
                  if langue == "wo"
-                 else f"{intro}Voici nos produits disponibles ! Tapez le nom du produit pour commander.")
+                 else f"{intro}Voici nos produits :\n{liste}\n\nTapez le nom du produit pour commander.")
         return json.dumps({"intent": "catalogue", "produits": [], "langue": langue, "reponse": texte})
 
     # ── Commande / Achat ──────────────────────────────────────────────────
