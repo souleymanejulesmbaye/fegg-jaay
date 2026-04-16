@@ -99,12 +99,7 @@ def _recevoir_message(request):
         "timestamp": "",
     }
 
-    if settings.DEBUG:
-        # Traitement synchrone en développement (pas besoin de Celery)
-        _traiter_message_sync(msg_data)
-    else:
-        from .tasks import traiter_message_entrant
-        traiter_message_entrant.delay(msg_data)
+    _traiter_message_sync(msg_data)
 
     # Twilio attend toujours un 200 rapide
     return HttpResponse("OK", status=200)
