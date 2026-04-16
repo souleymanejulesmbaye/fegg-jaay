@@ -1,15 +1,22 @@
 """Migration : ajout du champ slug sur Boutique."""
 
 from django.db import migrations, models
-import django.utils.text
 
 
 def generer_slugs(apps, schema_editor):
+    from django.utils.text import slugify
     Boutique = apps.get_model("boutiques", "Boutique")
     for boutique in Boutique.objects.all():
-        if not boutique.slug:
-            boutique.slug = django.utils.text.slugify(boutique.nom)
-            boutique.save(update_fields=["slug"])
+        slug = slugify(boutique.nom)
+        if not slug:
+            slug = str(boutique.pk)[:8]
+        # S'assurer que le slug est unique
+        base = slug
+        compteur = 1
+        while Boutique.objects.filter(slug=slug).exclude(pk=boutique.pk).exists():
+            slug = f"{base}-{compteur}"
+            compteur += 1
+        Boutique.objects.filter(pk=boutique.pk).update(slug=slug)
 
 
 class Migration(migrations.Migration):
@@ -19,27 +26,26 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Étape 1 : ajouter la colonne sans contrainte unique
         migrations.AddField(
             model_name="boutique",
             name="slug",
             field=models.SlugField(
                 blank=True,
                 default="",
-                unique=False,
-                help_text="Identifiant URL de la boutique (ex: teranga-shop)",
                 max_length=100,
             ),
-            preserve_default=False,
         ),
+        # Étape 2 : remplir les slugs depuis le nom
         migrations.RunPython(generer_slugs, migrations.RunPython.noop),
+        # Étape 3 : ajouter la contrainte unique maintenant que tout est rempli
         migrations.AlterField(
             model_name="boutique",
             name="slug",
             field=models.SlugField(
                 blank=True,
-                unique=True,
-                help_text="Identifiant URL de la boutique (ex: teranga-shop)",
                 max_length=100,
+                unique=True,
             ),
         ),
     ]
