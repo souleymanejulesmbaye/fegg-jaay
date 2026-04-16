@@ -1,0 +1,75 @@
+{% extends "vitrine/base.html" %}
+{% block title %}Commande confirmée — {{ boutique.nom }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .confirmation {
+    max-width: 560px; margin: 2rem auto;
+    background: white; border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    padding: 2.5rem; text-align: center;
+  }
+  .check { font-size: 3.5rem; margin-bottom: 1rem; }
+  .confirmation h1 { font-size: 1.6rem; font-weight: 800; color: #075e54; margin-bottom: 0.5rem; }
+  .confirmation .ref {
+    display: inline-block; background: #e8f5e9; color: #075e54;
+    font-weight: 700; font-size: 1.1rem; padding: 0.4rem 1rem;
+    border-radius: 8px; margin: 1rem 0;
+  }
+  .lignes {
+    text-align: left; background: #f9f9f9;
+    border-radius: 10px; padding: 1rem; margin: 1.2rem 0;
+  }
+  .lignes .ligne { padding: 0.4rem 0; border-bottom: 1px solid #eee; font-size: 0.95rem; }
+  .lignes .ligne:last-child { border-bottom: none; }
+  .total { font-weight: 700; font-size: 1.1rem; color: #075e54; margin: 0.5rem 0; }
+  .paiement-info {
+    background: #fff8e1; border-radius: 10px; padding: 1rem 1.2rem;
+    text-align: left; margin: 1.2rem 0; font-size: 0.9rem; color: #5d4037;
+  }
+  .paiement-info strong { display: block; margin-bottom: 0.4rem; font-size: 0.95rem; }
+  .btns { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="confirmation">
+  <div class="check">✅</div>
+  <h1>Commande enregistrée !</h1>
+  <p style="color:#666;margin-bottom:.5rem;">Merci pour votre commande.</p>
+  <div class="ref">{{ commande.numero_ref }}</div>
+
+  <div class="lignes">
+    {% for ligne in commande.lignes.all %}
+    <div class="ligne">
+      {{ ligne.quantite }}× {{ ligne.produit.nom }}
+      <span style="float:right;color:#075e54;font-weight:600;">{{ ligne.sous_total_formate }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="total">Total : {{ commande.montant_formate }}</div>
+
+  {% if commande.adresse_livraison %}
+  <p style="font-size:.9rem;color:#666;margin-bottom:1rem;">
+    📍 Livraison : {{ commande.adresse_livraison }}
+  </p>
+  {% endif %}
+
+  <div class="paiement-info">
+    <strong>💰 Comment payer ?</strong>
+    Envoyez <strong>{{ commande.montant_formate }}</strong> via Wave ou Orange Money,
+    puis envoyez votre numéro de transaction au commerçant via WhatsApp pour confirmer votre commande.
+  </div>
+
+  <div class="btns">
+    <a href="{% url 'vitrine:boutique' slug=boutique.slug %}" class="btn btn-outline">
+      Retour à la boutique
+    </a>
+    <a href="https://wa.me/{{ boutique.telephone_wa }}?text=Bonjour%20j%27ai%20pass%C3%A9%20la%20commande%20{{ commande.numero_ref }}%20et%20je%20veux%20payer"
+       class="btn btn-primary" target="_blank">
+      💬 Payer via WhatsApp
+    </a>
+  </div>
+</div>
+{% endblock %}

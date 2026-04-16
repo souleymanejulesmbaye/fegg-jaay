@@ -39,6 +39,14 @@ class Boutique(models.Model):
         verbose_name="Token API WhatsApp (360dialog)",
     )
 
+    # URL publique
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        blank=True,
+        help_text="Identifiant URL de la boutique (ex: teranga-shop)",
+    )
+
     # Contact commerçant
     proprietaire_tel = models.CharField(
         max_length=20,

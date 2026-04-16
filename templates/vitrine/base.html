@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Fëgg Jaay{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: #f0f2f5; color: #333; }
+    a { color: #25d366; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Header */
+    .header {
+      background: #075e54; color: white;
+      padding: 1rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header .brand { font-size: 1.3rem; font-weight: 700; color: white; }
+    .header .brand span { color: #25d366; }
+    .header .nav-links a { color: #ccc; margin-left: 1.2rem; font-size: 0.9rem; }
+    .header .nav-links a:hover { color: white; text-decoration: none; }
+
+    /* Container */
+    .container { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* Card */
+    .card {
+      background: white; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+
+    /* Boutons */
+    .btn {
+      display: inline-block; padding: 0.65rem 1.4rem; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer; border: none;
+      transition: background .2s;
+    }
+    .btn-primary { background: #25d366; color: white; }
+    .btn-primary:hover { background: #1ebe5a; text-decoration: none; }
+    .btn-outline {
+      background: transparent; border: 2px solid #25d366;
+      color: #25d366;
+    }
+    .btn-outline:hover { background: #25d366; color: white; text-decoration: none; }
+
+    /* Badge statut */
+    .badge {
+      display: inline-block; padding: 0.25rem 0.7rem;
+      border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+    }
+    .badge-attente { background: #fff3cd; color: #856404; }
+    .badge-payee { background: #d4edda; color: #155724; }
+
+    /* Footer */
+    .footer {
+      text-align: center; padding: 2rem 1rem;
+      color: #999; font-size: 0.85rem; margin-top: 3rem;
+      border-top: 1px solid #eee;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="header">
+  <a href="{% url 'vitrine:landing' %}" class="brand">🛍 Fëgg<span>Jaay</span></a>
+  <div class="nav-links">
+    <a href="{% url 'dashboard:login' %}">Espace commerçant</a>
+  </div>
+</div>
+
+<div class="container">
+  {% block content %}{% endblock %}
+</div>
+
+<div class="footer">
+  Fëgg Jaay &mdash; Commerce WhatsApp au Sénégal
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

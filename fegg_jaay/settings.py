@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "boutiques",
     "whatsapp",
     "dashboard",
+    "vitrine",
 ]
 
 MIDDLEWARE = [
@@ -114,9 +115,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ─── Authentification ─────────────────────────────────────────────────────────
-LOGIN_URL = "/login/"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/login/"
+LOGIN_URL = "/dashboard/login/"
+LOGIN_REDIRECT_URL = "/dashboard/"
+LOGOUT_REDIRECT_URL = "/dashboard/login/"
 
 # ─── CSRF ─────────────────────────────────────────────────────────────────────
 CSRF_TRUSTED_ORIGINS = [

@@ -1,0 +1,99 @@
+{% extends "vitrine/base.html" %}
+{% block title %}Fëgg Jaay — Commerce WhatsApp au Sénégal{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hero {
+    text-align: center; padding: 4rem 1rem 3rem;
+    background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
+    color: white; border-radius: 16px; margin-bottom: 2rem;
+  }
+  .hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.75rem; }
+  .hero p { font-size: 1.1rem; opacity: .85; max-width: 500px; margin: 0 auto 2rem; }
+  .hero .btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+  .boutiques-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.2rem;
+  }
+  .boutique-card {
+    background: white; border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    padding: 1.5rem; text-align: center;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .boutique-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,.1); }
+  .boutique-card .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .boutique-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .boutique-card .ville { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
+
+  .how-it-works { margin: 3rem 0; }
+  .how-it-works h2 { text-align: center; font-size: 1.5rem; margin-bottom: 1.5rem; color: #075e54; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+  .step { text-align: center; padding: 1.5rem 1rem; }
+  .step .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #25d366; color: white; font-weight: 700;
+    font-size: 1.1rem; margin-bottom: 0.75rem;
+  }
+  .step h4 { font-size: 1rem; margin-bottom: 0.4rem; }
+  .step p { font-size: 0.85rem; color: #666; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <h1>🛍 Fëgg Jaay</h1>
+  <p>Commandez facilement auprès des boutiques sénégalaises, via WhatsApp ou directement en ligne.</p>
+  <div class="btns">
+    {% if boutiques %}
+    <a href="#boutiques" class="btn btn-primary">Voir les boutiques</a>
+    {% endif %}
+    <a href="{% url 'dashboard:login' %}" class="btn btn-outline" style="border-color:white;color:white;">
+      Espace commerçant
+    </a>
+  </div>
+</div>
+
+{% if boutiques %}
+<h2 id="boutiques" style="font-size:1.3rem;margin-bottom:1rem;color:#075e54;">Nos boutiques</h2>
+<div class="boutiques-grid">
+  {% for b in boutiques %}
+  <div class="boutique-card">
+    <div class="icon">🏪</div>
+    <h3>{{ b.nom }}</h3>
+    <p class="ville">📍 {{ b.ville }}</p>
+    <a href="{% url 'vitrine:boutique' slug=b.slug %}" class="btn btn-primary">Voir les produits</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="how-it-works">
+  <h2>Comment ça marche ?</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="num">1</div>
+      <h4>Parcourez le catalogue</h4>
+      <p>Découvrez les produits disponibles avec leurs prix.</p>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <h4>Passez commande</h4>
+      <p>Sélectionnez vos articles et renseignez votre adresse de livraison.</p>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <h4>Payez via Wave / Orange</h4>
+      <p>Envoyez votre référence de transaction pour confirmer.</p>
+    </div>
+    <div class="step">
+      <div class="num">4</div>
+      <h4>Recevez votre commande</h4>
+      <p>Le commerçant prépare et livre votre commande.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -8,7 +8,8 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("wa/", include("whatsapp.urls")),
-    path("", include("dashboard.urls")),
+    path("dashboard/", include("dashboard.urls")),
+    path("", include("vitrine.urls")),
 ]
 
 # En développement, servir les médias localement

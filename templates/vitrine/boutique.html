@@ -1,0 +1,186 @@
+{% extends "vitrine/base.html" %}
+{% block title %}{{ boutique.nom }} — Fëgg Jaay{% endblock %}
+
+{% block extra_css %}
+<style>
+  .boutique-header {
+    background: linear-gradient(135deg, #075e54, #128c7e);
+    color: white; border-radius: 12px; padding: 2rem;
+    margin-bottom: 2rem; text-align: center;
+  }
+  .boutique-header h1 { font-size: 1.8rem; font-weight: 800; }
+  .boutique-header .meta { opacity: .8; margin-top: 0.4rem; font-size: 0.95rem; }
+
+  .produits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .produit-card {
+    background: white; border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.07);
+    padding: 1.2rem; position: relative;
+  }
+  .produit-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .produit-card .prix { color: #075e54; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.8rem; }
+  .produit-card .stock { font-size: 0.8rem; color: #888; margin-bottom: 0.8rem; }
+  .qte-control {
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .qte-control button {
+    width: 30px; height: 30px; border-radius: 50%; border: none;
+    background: #f0f2f5; font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; color: #075e54;
+  }
+  .qte-control button:hover { background: #25d366; color: white; }
+  .qte-control input {
+    width: 45px; text-align: center; border: 1px solid #ddd;
+    border-radius: 6px; padding: 0.3rem; font-size: 0.95rem;
+  }
+
+  .form-section { background: white; border-radius: 12px; padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+  .form-section h2 { font-size: 1.2rem; margin-bottom: 1.2rem; color: #075e54; }
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: 0.85rem; font-weight: 600;
+    color: #555; margin-bottom: 0.3rem; }
+  .form-group input, .form-group textarea {
+    width: 100%; padding: 0.65rem 0.9rem; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 0.95rem;
+  }
+  .form-group input:focus, .form-group textarea:focus {
+    outline: none; border-color: #25d366;
+    box-shadow: 0 0 0 3px rgba(37,211,102,.15);
+  }
+
+  #panier-resume {
+    background: #f0fff4; border: 1px solid #25d366;
+    border-radius: 8px; padding: 1rem; margin-bottom: 1.2rem;
+    font-size: 0.9rem; display: none;
+  }
+  #panier-resume h3 { font-size: 0.95rem; margin-bottom: 0.5rem; color: #075e54; }
+  #panier-total { font-weight: 700; margin-top: 0.5rem; color: #075e54; }
+
+  .wa-info {
+    background: #e8f5e9; border-radius: 8px; padding: 0.9rem 1rem;
+    font-size: 0.85rem; color: #2e7d32; margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="boutique-header">
+  <h1>{{ boutique.nom }}</h1>
+  <div class="meta">📍 {{ boutique.ville }}</div>
+</div>
+
+{% if produits %}
+<form method="post" action="{% url 'vitrine:commander' slug=boutique.slug %}" id="order-form">
+  {% csrf_token %}
+
+  <h2 style="font-size:1.2rem;margin-bottom:1rem;color:#075e54;">Nos produits</h2>
+  <div class="produits-grid">
+    {% for produit in produits %}
+    <div class="produit-card">
+      <h3>{{ produit.nom }}</h3>
+      <div class="prix">{{ produit.prix_formate }}</div>
+      <div class="stock">{{ produit.stock }} en stock</div>
+      <div class="qte-control">
+        <button type="button" onclick="changerQte({{ produit.pk }}, -1)">−</button>
+        <input type="number" name="produit_{{ produit.pk }}" id="qte_{{ produit.pk }}"
+               value="0" min="0" max="{{ produit.stock }}"
+               data-prix="{{ produit.prix }}" data-nom="{{ produit.nom }}"
+               onchange="mettreAJourPanier()">
+        <button type="button" onclick="changerQte({{ produit.pk }}, 1)">+</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="form-section">
+    <h2>Votre commande</h2>
+
+    <div id="panier-resume">
+      <h3>🛒 Récapitulatif</h3>
+      <div id="panier-lignes"></div>
+      <div id="panier-total"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="prenom">Votre prénom</label>
+      <input type="text" name="prenom" id="prenom" placeholder="Ex: Moussa" required>
+    </div>
+    <div class="form-group">
+      <label for="telephone">Votre numéro WhatsApp</label>
+      <input type="tel" name="telephone" id="telephone"
+             placeholder="Ex: +221771234567" required>
+    </div>
+    <div class="form-group">
+      <label for="adresse">Adresse de livraison</label>
+      <textarea name="adresse" id="adresse" rows="2"
+                placeholder="Ex: Rue 10, Médina, Dakar"></textarea>
+    </div>
+
+    <div class="wa-info">
+      📱 Après votre commande, envoyez votre référence de paiement Wave / Orange Money
+      au commerçant via WhatsApp pour confirmer.
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="btn-commander" style="width:100%;padding:.9rem;" disabled>
+      Commander
+    </button>
+  </div>
+</form>
+{% else %}
+<div class="card" style="text-align:center;padding:3rem;">
+  <p style="font-size:1.1rem;color:#888;">Aucun produit disponible pour le moment.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const prix = {};
+  document.querySelectorAll("input[type=number]").forEach(input => {
+    prix[input.id] = { p: parseInt(input.dataset.prix), nom: input.dataset.nom };
+  });
+
+  function changerQte(id, delta) {
+    const input = document.getElementById("qte_" + id);
+    const max = parseInt(input.max);
+    const val = Math.max(0, Math.min(max, parseInt(input.value || 0) + delta));
+    input.value = val;
+    mettreAJourPanier();
+  }
+
+  function mettreAJourPanier() {
+    const lignes = [];
+    let total = 0;
+    document.querySelectorAll("input[type=number]").forEach(input => {
+      const qte = parseInt(input.value || 0);
+      if (qte > 0) {
+        const id = input.id;
+        const sous_total = qte * prix[id].p;
+        total += sous_total;
+        lignes.push(`${qte}× ${prix[id].nom} — ${formatFCFA(sous_total)}`);
+      }
+    });
+    const resume = document.getElementById("panier-resume");
+    const btn = document.getElementById("btn-commander");
+    if (lignes.length > 0) {
+      document.getElementById("panier-lignes").innerHTML = lignes.map(l => `<div>• ${l}</div>`).join("");
+      document.getElementById("panier-total").textContent = "Total : " + formatFCFA(total);
+      resume.style.display = "block";
+      btn.disabled = false;
+    } else {
+      resume.style.display = "none";
+      btn.disabled = true;
+    }
+  }
+
+  function formatFCFA(n) {
+    return n.toLocaleString("fr-FR") + " FCFA";
+  }
+</script>
+{% endblock %}
