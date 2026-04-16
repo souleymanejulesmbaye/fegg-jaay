@@ -18,4 +18,4 @@ COPY . .
 EXPOSE 8000
 
 # Au démarrage : migrate + collectstatic + gunicorn (les env vars sont dispo ici)
-CMD ["/bin/sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && exec gunicorn fegg_jaay.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2"]
+CMD ["/bin/sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py createsuperuser --noinput --username ${DJANGO_SUPERUSER_USERNAME:-admin} --email ${DJANGO_SUPERUSER_EMAIL:-admin@example.com} 2>/dev/null || true && exec gunicorn fegg_jaay.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2"]
