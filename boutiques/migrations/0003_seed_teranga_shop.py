@@ -11,8 +11,9 @@ def seed_data(apps, schema_editor):
         telephone_wa="+14155238886",
         defaults={
             "nom": "TERANGA SHOP",
-            "twilio_account_sid": "AC9cb5d91b3f6af1b96c930a41244c7b1d",
-            "twilio_auth_token": "79bb9b67ae564a03f651726f48a01abd",
+            "wa_phone_id": "twilio",
+            "wa_token": "twilio",
+            "proprietaire_tel": "+14155238886",
             "actif": True,
         },
     )
