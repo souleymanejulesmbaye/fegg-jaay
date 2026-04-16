@@ -220,6 +220,11 @@ class Commande(models.Model):
         choices=MODE_PAIEMENT_CHOICES,
         blank=True,
     )
+    reference_paiement = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Numéro de transaction Wave/Orange Money fourni par le client",
+    )
     adresse_livraison = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

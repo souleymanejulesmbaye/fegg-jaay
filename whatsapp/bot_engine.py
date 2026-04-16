@@ -78,6 +78,11 @@ def traiter_message(
     En cas d'erreur, retourne un message d'excuse générique.
     """
     try:
+        # Vérifier si on attend une référence de paiement
+        commande_paiement = _est_en_attente_reference_paiement(boutique, client)
+        if commande_paiement:
+            return _sauver_reference_paiement(commande_paiement, message, client)
+
         # Vérifier si on attend une adresse de livraison
         commande_adresse = _est_en_attente_adresse(boutique, client)
         if commande_adresse:
@@ -469,17 +474,16 @@ def _traiter_commande(
 
 def _traiter_paiement(boutique: Boutique, client: Client, langue: str) -> str:
     """
-    Phase 1 : vérification manuelle. On informe juste le client que
-    le commerçant va confirmer.
+    Demande le numéro de transaction au client pour enregistrer le paiement.
     """
     if langue == "wo":
         return (
-            "Jërejëf ! Nanu jël foto bi njëk. "
-            "Propriétaire bi dina xam-xam te dina la génne yoon bu ndaw."
+            "Jërejëf ! Bind numéro transaction Wave walla Orange Money bi :\n"
+            "(ex: WV-12345678 walla OM-98765432)"
         )
     return (
-        "Merci ! Nous avons bien reçu votre preuve de paiement. "
-        "Le commerçant va vérifier et confirmer votre commande très bientôt."
+        "Merci ! Quel est votre numéro de transaction Wave ou Orange Money ?\n"
+        "(ex: WV-12345678 ou OM-98765432)"
     )
 
 
@@ -588,6 +592,86 @@ def _sauver_adresse_livraison(commande: Commande, adresse: str, client: Client) 
     return (
         f"Adresse enregistrée ✅\n"
         f"Commande *{commande.numero_ref}* — Envoyez votre preuve de paiement pour confirmer."
+    )
+
+
+# ─── Paiement — collecte de la référence de transaction ──────────────────────
+
+def _est_en_attente_reference_paiement(boutique: Boutique, client: Client) -> Optional[Commande]:
+    """
+    Retourne la commande récente sans référence de paiement si le dernier
+    message bot demandait un numéro de transaction.
+    """
+    from datetime import timedelta
+    seuil = timezone.now() - timedelta(minutes=30)
+
+    commande = (
+        Commande.objects
+        .filter(
+            boutique=boutique,
+            client=client,
+            statut="attente_paiement",
+            reference_paiement="",
+            created_at__gte=seuil,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    if not commande:
+        return None
+
+    # Vérifier que le dernier message bot demandait la référence
+    dernier_bot = (
+        MessageLog.objects
+        .filter(boutique=boutique, telephone_client=client.telephone, direction="sortant")
+        .order_by("-created_at")
+        .first()
+    )
+    if dernier_bot and "transaction" in dernier_bot.contenu.lower():
+        return commande
+    return None
+
+
+def _sauver_reference_paiement(commande: Commande, reference: str, client: Client) -> str:
+    """Sauvegarde la référence de transaction et notifie le commerçant."""
+    ref = reference.strip()
+
+    # Détecter le mode de paiement depuis la référence
+    ref_lower = ref.lower()
+    if "wave" in ref_lower or ref.upper().startswith("WV"):
+        mode = "wave"
+    elif "orange" in ref_lower or ref.upper().startswith("OM"):
+        mode = "orange_money"
+    elif "free" in ref_lower or ref.upper().startswith("FM"):
+        mode = "free_money"
+    else:
+        mode = "wave"  # défaut le plus courant au Sénégal
+
+    commande.reference_paiement = ref
+    commande.mode_paiement = mode
+    commande.save(update_fields=["reference_paiement", "mode_paiement", "updated_at"])
+
+    logger.info(
+        "Référence paiement '%s' (%s) enregistrée pour commande %s.",
+        ref, mode, commande.numero_ref,
+    )
+
+    # Notifier le commerçant
+    try:
+        from .sender import notifier_paiement_recu
+        notifier_paiement_recu(commande.boutique, commande)
+    except Exception:
+        logger.warning("Impossible de notifier le commerçant (paiement %s).", commande.numero_ref)
+
+    langue = client.langue_preferee
+    if langue == "wo":
+        return (
+            f"Jërejëf ! Réf *{ref}* bi nanu ko def ✅\n"
+            f"Commande *{commande.numero_ref}* — Propriétaire bi dina xam-xam te dina la génne yoon."
+        )
+    return (
+        f"Merci ! Référence *{ref}* bien enregistrée ✅\n"
+        f"Votre commande *{commande.numero_ref}* sera confirmée très bientôt."
     )
 
 

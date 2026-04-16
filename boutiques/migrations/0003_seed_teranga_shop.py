@@ -13,7 +13,7 @@ def seed_data(apps, schema_editor):
             "nom": "TERANGA SHOP",
             "wa_phone_id": "twilio",
             "wa_token": "twilio",
-            "proprietaire_tel": "+14155238886",
+            "proprietaire_tel": "+221778953918",
             "actif": True,
         },
     )

@@ -137,6 +137,24 @@ def notifier_nouvelle_commande(boutique: Boutique, commande) -> bool:
     return envoyer_notification_commercant(boutique, message)
 
 
+def notifier_paiement_recu(boutique: Boutique, commande) -> bool:
+    """
+    Notifie le commerçant qu'un client a fourni une référence de paiement.
+    Le commerçant doit vérifier et confirmer dans le dashboard.
+    """
+    mode_label = dict(commande.MODE_PAIEMENT_CHOICES).get(commande.mode_paiement, commande.mode_paiement)
+    message = (
+        f"💰 *Paiement reçu !*\n\n"
+        f"Commande : *{commande.numero_ref}*\n"
+        f"Client : {commande.client.prenom or commande.client.telephone}\n"
+        f"Montant : *{commande.montant_formate}*\n"
+        f"Mode : {mode_label}\n"
+        f"Réf transaction : *{commande.reference_paiement}*\n\n"
+        f"✅ Confirmez sur votre dashboard."
+    )
+    return envoyer_notification_commercant(boutique, message)
+
+
 def notifier_alerte_stock(boutique: Boutique, produit) -> bool:
     """Alerte le commerçant quand le stock d'un produit passe sous le seuil."""
     message = (
