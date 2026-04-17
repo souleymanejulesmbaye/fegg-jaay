@@ -126,6 +126,22 @@
                 placeholder="Ex: Rue 10, Médina, Dakar"></textarea>
     </div>
 
+    {% if zones %}
+    <div class="form-group">
+      <label for="zone_livraison">Zone de livraison</label>
+      <select name="zone_livraison" id="zone_livraison"
+              style="width:100%;padding:0.65rem 0.9rem;border:1px solid #ddd;border-radius:8px;font-size:0.95rem;"
+              onchange="mettreAJourPanier()">
+        <option value="">— Choisir une zone —</option>
+        {% for zone in zones %}
+        <option value="{{ zone.pk }}" data-frais="{{ zone.frais }}">
+          {{ zone.nom }} — {{ zone.frais_formate }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
     <div class="wa-info">
       📱 Après votre commande, envoyez votre référence de paiement Wave / Orange Money
       au commerçant via WhatsApp pour confirmer.
@@ -160,21 +176,34 @@
 
   function mettreAJourPanier() {
     const lignes = [];
-    let total = 0;
+    let totalProduits = 0;
     document.querySelectorAll("input[type=number]").forEach(input => {
       const qte = parseInt(input.value || 0);
       if (qte > 0) {
         const id = input.id;
         const sous_total = qte * prix[id].p;
-        total += sous_total;
+        totalProduits += sous_total;
         lignes.push(`${qte}× ${prix[id].nom} — ${formatFCFA(sous_total)}`);
       }
     });
+
+    // Frais de livraison
+    const zoneSelect = document.getElementById("zone_livraison");
+    let fraisLivraison = 0;
+    if (zoneSelect && zoneSelect.value) {
+      const opt = zoneSelect.options[zoneSelect.selectedIndex];
+      fraisLivraison = parseInt(opt.dataset.frais || 0);
+    }
+
     const resume = document.getElementById("panier-resume");
     const btn = document.getElementById("btn-commander");
     if (lignes.length > 0) {
-      document.getElementById("panier-lignes").innerHTML = lignes.map(l => `<div>• ${l}</div>`).join("");
-      document.getElementById("panier-total").textContent = "Total : " + formatFCFA(total);
+      let html = lignes.map(l => `<div>• ${l}</div>`).join("");
+      if (fraisLivraison > 0) {
+        html += `<div style="color:#888;margin-top:0.3rem;">• Livraison — ${formatFCFA(fraisLivraison)}</div>`;
+      }
+      document.getElementById("panier-lignes").innerHTML = html;
+      document.getElementById("panier-total").textContent = "Total : " + formatFCFA(totalProduits + fraisLivraison);
       resume.style.display = "block";
       btn.disabled = false;
     } else {

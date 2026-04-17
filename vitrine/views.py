@@ -24,7 +24,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods, require_POST
 
-from boutiques.models import Boutique, Client, Commande, LigneCommande, OTPCode, Produit
+from boutiques.models import Boutique, Client, Commande, LigneCommande, OTPCode, Produit, ZoneLivraison
 
 OTP_EXPIRY_MINUTES = 10
 
@@ -41,9 +41,11 @@ def boutique(request, slug):
     """Vitrine publique d'une boutique : catalogue + formulaire de commande."""
     shop = get_object_or_404(Boutique, slug=slug, actif=True)
     produits = Produit.objects.filter(boutique=shop, actif=True, stock__gt=0).order_by("nom")
+    zones = ZoneLivraison.objects.filter(boutique=shop, actif=True).order_by("frais", "nom")
     return render(request, "vitrine/boutique.html", {
         "boutique": shop,
         "produits": produits,
+        "zones": zones,
     })
 
 
@@ -62,9 +64,18 @@ def passer_commande(request, slug):
     prenom = request.POST.get("prenom", "").strip()
     telephone = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "")
     adresse = request.POST.get("adresse", "").strip()
+    zone_id = request.POST.get("zone_livraison", "").strip()
 
     if not telephone:
         return redirect("vitrine:boutique", slug=slug)
+
+    # Récupérer la zone de livraison choisie
+    zone = None
+    frais_livraison = 0
+    if zone_id:
+        zone = ZoneLivraison.objects.filter(pk=zone_id, boutique=shop, actif=True).first()
+        if zone:
+            frais_livraison = zone.frais
 
     # Normaliser le numéro (ajouter + si absent)
     if not telephone.startswith("+"):
@@ -101,6 +112,8 @@ def passer_commande(request, slug):
                 client=client,
                 statut="attente_paiement",
                 adresse_livraison=adresse,
+                zone_livraison=zone,
+                frais_livraison=frais_livraison,
             )
 
             for produit, quantite in items:

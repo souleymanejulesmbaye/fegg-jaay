@@ -24,7 +24,7 @@ from django.db.models.functions import TruncDate
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 
-from boutiques.models import Boutique, Commande, LigneCommande, Produit, Client, MessageLog
+from boutiques.models import Boutique, Commande, LigneCommande, Produit, Client, MessageLog, ZoneLivraison
 
 logger = logging.getLogger(__name__)
 
@@ -419,18 +419,42 @@ def changer_statut_commande(request, commande_id):
     commande.statut = nouveau_statut
     commande.save(update_fields=["statut", "updated_at"])
 
-    # Notifier le client si commande passée à "payée"
-    if nouveau_statut == "payee" and ancien_statut == "attente_paiement":
-        from whatsapp.sender import envoyer_message_texte
-        langue = commande.client.langue_preferee
-        if langue == "wo":
-            msg = f"Commande *{commande.numero_ref}* bi dafa sett ✅ Jërejëf ci jaay !"
-        else:
-            msg = f"Votre commande *{commande.numero_ref}* a été confirmée ✅ Merci pour votre achat !"
-        envoyer_message_texte(boutique, commande.client.telephone, msg)
+    # Notifier le client selon le nouveau statut
+    _notifier_client_statut(boutique, commande, nouveau_statut, ancien_statut)
 
     messages.success(request, f"Statut mis à jour : {commande.get_statut_display()}")
     return redirect("dashboard:detail_commande", commande_id=commande_id)
+
+
+def _notifier_client_statut(boutique, commande, nouveau_statut, ancien_statut):
+    """Envoie une notification WhatsApp au client lors d'un changement de statut."""
+    if nouveau_statut == ancien_statut:
+        return
+
+    ref = commande.numero_ref
+    messages_fr = {
+        "payee": f"✅ Votre commande *{ref}* a été confirmée. Nous préparons votre colis !",
+        "en_preparation": f"📦 Votre commande *{ref}* est en cours de préparation.",
+        "livree": f"🎉 Votre commande *{ref}* a été livrée. Merci pour votre achat !",
+        "annulee": f"❌ Votre commande *{ref}* a été annulée. Contactez-nous pour plus d'infos.",
+    }
+    messages_wo = {
+        "payee": f"✅ Commande *{ref}* bi dafa sett. Dañuy lëkk sa yëgël !",
+        "en_preparation": f"📦 Commande *{ref}* bi dañuy am ci kanam.",
+        "livree": f"🎉 Commande *{ref}* bi dafa àgg. Jërejëf ci jaay !",
+        "annulee": f"❌ Commande *{ref}* bi dafa dëkk. Wax ak nun ngir xam dëggëru.",
+    }
+
+    langue = commande.client.langue_preferee
+    msg_map = messages_wo if langue == "wo" else messages_fr
+    msg = msg_map.get(nouveau_statut)
+
+    if msg:
+        try:
+            from whatsapp.sender import envoyer_message_texte
+            envoyer_message_texte(boutique, commande.client.telephone, msg)
+        except Exception:
+            logger.warning("Impossible de notifier client commande %s → %s", ref, nouveau_statut)
 
 
 # ─── Clients ──────────────────────────────────────────────────────────────────
@@ -547,6 +571,47 @@ def config_boutique(request):
         return redirect("dashboard:config_boutique")
 
     return render(request, "dashboard/config.html", {"boutique": boutique})
+
+
+# ─── Zones de livraison ───────────────────────────────────────────────────────
+
+@login_required
+def zones_livraison(request):
+    """Gestion des zones de livraison de la boutique."""
+    boutique = _get_boutique(request)
+    if not boutique:
+        return redirect("dashboard:accueil")
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+
+        if action == "ajouter":
+            nom = request.POST.get("nom", "").strip()
+            frais_str = request.POST.get("frais", "0").strip()
+            if nom:
+                frais = int(frais_str) if frais_str.isdigit() else 0
+                ZoneLivraison.objects.create(boutique=boutique, nom=nom, frais=frais)
+                messages.success(request, f"Zone « {nom} » ajoutée.")
+
+        elif action == "supprimer":
+            zone_id = request.POST.get("zone_id")
+            ZoneLivraison.objects.filter(pk=zone_id, boutique=boutique).delete()
+            messages.success(request, "Zone supprimée.")
+
+        elif action == "toggle":
+            zone_id = request.POST.get("zone_id")
+            zone = ZoneLivraison.objects.filter(pk=zone_id, boutique=boutique).first()
+            if zone:
+                zone.actif = not zone.actif
+                zone.save(update_fields=["actif"])
+
+        return redirect("dashboard:zones_livraison")
+
+    zones = ZoneLivraison.objects.filter(boutique=boutique).order_by("frais", "nom")
+    return render(request, "dashboard/livraisons/zones.html", {
+        "boutique": boutique,
+        "zones": zones,
+    })
 
 
 # ─── Page de test bot ────────────────────────────────────────────────────────

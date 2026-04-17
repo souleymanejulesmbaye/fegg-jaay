@@ -246,6 +246,13 @@ class Commande(models.Model):
         blank=True,
         help_text="Numéro de transaction Wave/Orange Money fourni par le client",
     )
+    zone_livraison = models.ForeignKey(
+        "ZoneLivraison", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="commandes"
+    )
+    frais_livraison = models.PositiveIntegerField(
+        default=0, help_text="Frais de livraison en FCFA, figés au moment de la commande"
+    )
     adresse_livraison = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -269,12 +276,16 @@ class Commande(models.Model):
             super().save(*args, **kwargs)
 
     def recalculer_total(self):
-        """Recalcule et sauvegarde le montant total depuis les lignes."""
+        """Recalcule et sauvegarde le montant total (produits + frais livraison)."""
         total = sum(
             l.quantite * l.prix_unitaire for l in self.lignes.all()
         )
-        self.montant_total = total
+        self.montant_total = total + self.frais_livraison
         self.save(update_fields=["montant_total"])
+
+    @property
+    def sous_total_produits(self) -> int:
+        return self.montant_total - self.frais_livraison
 
     @property
     def montant_formate(self) -> str:
@@ -311,6 +322,32 @@ class LigneCommande(models.Model):
     @property
     def sous_total_formate(self) -> str:
         return f"{self.sous_total:,} FCFA".replace(",", " ")
+
+
+# ─── ZoneLivraison ────────────────────────────────────────────────────────────
+
+class ZoneLivraison(models.Model):
+    """Zone de livraison définie par le commerçant, avec frais associés."""
+
+    boutique = models.ForeignKey(
+        Boutique, on_delete=models.CASCADE, related_name="zones_livraison"
+    )
+    nom = models.CharField(max_length=100, help_text="Ex : Dakar Plateau, Banlieue...")
+    frais = models.PositiveIntegerField(default=0, help_text="Frais de livraison en FCFA (0 = gratuit)")
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Zone de livraison"
+        verbose_name_plural = "Zones de livraison"
+        ordering = ["frais", "nom"]
+
+    def __str__(self):
+        frais_str = "Gratuit" if self.frais == 0 else f"{self.frais:,} FCFA".replace(",", " ")
+        return f"{self.nom} — {frais_str}"
+
+    @property
+    def frais_formate(self) -> str:
+        return "Gratuit" if self.frais == 0 else f"{self.frais:,} FCFA".replace(",", " ")
 
 
 # ─── OTPCode ──────────────────────────────────────────────────────────────────

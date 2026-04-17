@@ -35,6 +35,9 @@ urlpatterns = [
     # Configuration boutique
     path("config/", views.config_boutique, name="config_boutique"),
 
+    # Livraisons
+    path("livraisons/zones/", views.zones_livraison, name="zones_livraison"),
+
     # Test bot
     path("test-bot/", views.test_bot, name="test_bot"),
     path("test-bot/reset/", views.reset_test_bot, name="reset_test_bot"),

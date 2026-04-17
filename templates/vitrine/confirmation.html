@@ -48,6 +48,11 @@
     {% endfor %}
   </div>
 
+  {% if commande.zone_livraison %}
+  <div style="font-size:0.9rem;color:#666;margin-bottom:0.3rem;">
+    📦 Livraison : {{ commande.zone_livraison.nom }} — {{ commande.zone_livraison.frais_formate }}
+  </div>
+  {% endif %}
   <div class="total">Total : {{ commande.montant_formate }}</div>
 
   {% if commande.adresse_livraison %}

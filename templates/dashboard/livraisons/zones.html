@@ -1,0 +1,99 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Zones de livraison{% endblock %}
+
+{% block extra_css %}
+<style>
+  .zone-row { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #eee; }
+  .zone-row:last-child { border-bottom: none; }
+  .zone-nom { flex: 1; font-weight: 600; }
+  .zone-frais { color: #075e54; font-weight: 700; min-width: 120px; }
+  .zone-inactive { opacity: 0.45; }
+  .badge-actif { background: #e8f5e9; color: #2e7d32; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.78rem; }
+  .badge-inactif { background: #f5f5f5; color: #999; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.78rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1rem;">
+  <a href="{% url 'dashboard:accueil' %}">&larr; Retour au tableau de bord</a>
+</div>
+
+<h2 style="margin-bottom:1.5rem;">Zones de livraison</h2>
+
+<!-- Ajouter une zone -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-title">Ajouter une zone</div>
+  <form method="post" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="ajouter">
+    <div style="flex:2;min-width:180px;">
+      <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:0.3rem;">Nom de la zone *</label>
+      <input type="text" name="nom" placeholder="Ex : Dakar Plateau, Banlieue..." required
+             style="width:100%;padding:0.6rem 0.8rem;border:1px solid #ddd;border-radius:6px;">
+    </div>
+    <div style="flex:1;min-width:140px;">
+      <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:0.3rem;">Frais (FCFA)</label>
+      <input type="number" name="frais" placeholder="0 = Gratuit" min="0" value="0"
+             style="width:100%;padding:0.6rem 0.8rem;border:1px solid #ddd;border-radius:6px;">
+    </div>
+    <div>
+      <button type="submit" class="btn btn-primary">+ Ajouter</button>
+    </div>
+  </form>
+</div>
+
+<!-- Liste des zones -->
+<div class="card">
+  <div class="card-title">Zones configurées ({{ zones|length }})</div>
+  {% if zones %}
+    {% for zone in zones %}
+    <div class="zone-row {% if not zone.actif %}zone-inactive{% endif %}">
+      <div class="zone-nom">{{ zone.nom }}</div>
+      <div class="zone-frais">{{ zone.frais_formate }}</div>
+      <div>
+        {% if zone.actif %}
+          <span class="badge-actif">Active</span>
+        {% else %}
+          <span class="badge-inactif">Inactive</span>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <!-- Activer/Désactiver -->
+        <form method="post" style="margin:0;">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="toggle">
+          <input type="hidden" name="zone_id" value="{{ zone.pk }}">
+          <button type="submit" class="btn btn-secondary"
+                  style="padding:0.35rem 0.75rem;font-size:0.8rem;">
+            {% if zone.actif %}Désactiver{% else %}Activer{% endif %}
+          </button>
+        </form>
+        <!-- Supprimer -->
+        <form method="post" style="margin:0;"
+              onsubmit="return confirm('Supprimer la zone « {{ zone.nom }} » ?');">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="supprimer">
+          <input type="hidden" name="zone_id" value="{{ zone.pk }}">
+          <button type="submit" class="btn"
+                  style="padding:0.35rem 0.75rem;font-size:0.8rem;background:#fdecea;color:#c62828;border:none;border-radius:5px;cursor:pointer;">
+            Supprimer
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <p style="color:#888;font-size:0.9rem;">
+    Aucune zone configurée. Ajoutez des zones pour que vos clients puissent choisir lors de la commande.
+  </p>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-top:1.5rem;background:#fff8e1;border:1px solid #ffe082;">
+  <p style="font-size:0.9rem;color:#5d4037;margin:0;">
+    💡 <strong>Comment ça marche ?</strong>
+    Lorsque votre boutique a des zones actives, les clients peuvent choisir leur zone lors de la commande web.
+    Les frais s'ajoutent automatiquement au total de la commande.
+  </p>
+</div>
+{% endblock %}
