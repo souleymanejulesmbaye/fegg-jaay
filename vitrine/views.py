@@ -123,12 +123,22 @@ def passer_commande(request, slug):
                 total_commandes=client.total_commandes + 1
             )
 
-            # Notifier le commerçant
+            # Notifier le commerçant — nouvelle commande
             try:
                 from whatsapp.sender import notifier_nouvelle_commande
                 notifier_nouvelle_commande(shop, commande)
             except Exception:
                 logger.warning("Notification commerçant impossible (commande %s).", commande.numero_ref)
+
+            # Alertes stock bas pour les produits commandés
+            try:
+                from whatsapp.sender import notifier_alerte_stock
+                for produit, _ in items:
+                    p_refresh = Produit.objects.get(pk=produit.pk)
+                    if p_refresh.stock <= p_refresh.stock_alerte:
+                        notifier_alerte_stock(shop, p_refresh)
+            except Exception:
+                logger.warning("Alerte stock impossible après commande %s.", commande.numero_ref)
 
             logger.info("Commande web %s créée — client=%s", commande.numero_ref, telephone_stocke)
 
@@ -294,6 +304,40 @@ def deconnexion(request, slug):
 
 
 # ─── Confirmation commande ────────────────────────────────────────────────────
+
+@require_POST
+def soumettre_paiement(request, slug, ref):
+    """
+    Le client soumet sa référence de transaction Wave/Orange Money depuis la web.
+    Met à jour la commande et notifie le commerçant.
+    """
+    shop = get_object_or_404(Boutique, slug=slug, actif=True)
+    commande = get_object_or_404(
+        Commande,
+        numero_ref=ref,
+        boutique=shop,
+        statut="attente_paiement",
+    )
+
+    mode = request.POST.get("mode_paiement", "").strip()
+    reference = request.POST.get("reference_paiement", "").strip()
+
+    if not reference:
+        return redirect("vitrine:confirmation", slug=slug, ref=ref)
+
+    commande.mode_paiement = mode
+    commande.reference_paiement = reference
+    commande.save(update_fields=["mode_paiement", "reference_paiement", "updated_at"])
+
+    try:
+        from whatsapp.sender import notifier_paiement_recu
+        notifier_paiement_recu(shop, commande)
+    except Exception:
+        logger.warning("Notification paiement impossible (commande %s).", ref)
+
+    logger.info("Référence paiement soumise — commande %s, mode %s", ref, mode)
+    return redirect("vitrine:confirmation", slug=slug, ref=ref)
+
 
 def confirmation(request, slug, ref):
     """Page de confirmation après commande."""

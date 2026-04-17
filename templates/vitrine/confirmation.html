@@ -56,20 +56,56 @@
   </p>
   {% endif %}
 
+  {% if commande.reference_paiement %}
+  <div style="background:#e8f5e9;border-radius:10px;padding:1rem 1.2rem;text-align:left;margin:1.2rem 0;font-size:0.9rem;color:#2e7d32;">
+    <strong>✅ Paiement soumis — en attente de confirmation</strong><br>
+    Référence : <strong>{{ commande.reference_paiement }}</strong><br>
+    Mode : {{ commande.get_mode_paiement_display }}
+  </div>
+  {% else %}
   <div class="paiement-info">
     <strong>💰 Comment payer ?</strong>
-    Envoyez <strong>{{ commande.montant_formate }}</strong> via Wave ou Orange Money,
-    puis envoyez votre numéro de transaction au commerçant via WhatsApp pour confirmer votre commande.
+    Envoyez <strong>{{ commande.montant_formate }}</strong> via Wave ou Orange Money au numéro du commerçant,
+    puis entrez votre référence de transaction ci-dessous.
   </div>
+
+  <form method="post" action="{% url 'vitrine:soumettre_paiement' slug=boutique.slug ref=commande.numero_ref %}"
+        style="text-align:left;background:#f9f9f9;border-radius:10px;padding:1.2rem;margin:1.2rem 0;">
+    {% csrf_token %}
+    <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:0.4rem;">
+      Mode de paiement
+    </label>
+    <select name="mode_paiement" style="width:100%;padding:0.6rem 0.8rem;border:1px solid #ddd;border-radius:6px;margin-bottom:1rem;font-size:0.9rem;">
+      <option value="wave">Wave</option>
+      <option value="orange_money">Orange Money</option>
+      <option value="free_money">Free Money</option>
+    </select>
+
+    <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:0.4rem;">
+      Référence de transaction *
+    </label>
+    <input type="text" name="reference_paiement"
+           placeholder="Ex : WV-1234567890"
+           style="width:100%;padding:0.6rem 0.8rem;border:1px solid #ddd;border-radius:6px;margin-bottom:1rem;font-size:0.9rem;"
+           required>
+
+    <button type="submit"
+            style="width:100%;padding:0.75rem;background:#25d366;color:white;border:none;border-radius:6px;font-size:0.95rem;font-weight:700;cursor:pointer;">
+      ✅ Confirmer mon paiement
+    </button>
+  </form>
+  {% endif %}
 
   <div class="btns">
     <a href="{% url 'vitrine:boutique' slug=boutique.slug %}" class="btn btn-outline">
       Retour à la boutique
     </a>
+    {% if not commande.reference_paiement %}
     <a href="https://wa.me/{{ boutique.telephone_wa }}?text=Bonjour%20j%27ai%20pass%C3%A9%20la%20commande%20{{ commande.numero_ref }}%20et%20je%20veux%20payer"
        class="btn btn-primary" target="_blank">
       💬 Payer via WhatsApp
     </a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
