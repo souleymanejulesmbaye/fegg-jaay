@@ -2,7 +2,7 @@
 {% block title %}{{ boutique.nom }} — Fëgg Jaay{% endblock %}
 
 {% block nav_extra %}
-<a href="{% url 'vitrine:compte' boutique.slug %}">Mon compte</a>
+<a href="{% url 'vitrine:compte' boutique.slug %}">{{ t.mon_compte }}</a>
 {% endblock %}
 
 {% block extra_css %}
@@ -96,7 +96,7 @@
 <form method="get" action="" style="margin-bottom:1rem;">
   {% if cat_active %}<input type="hidden" name="cat" value="{{ cat_active }}">{% endif %}
   <div style="display:flex;gap:0.5rem;">
-    <input type="search" name="q" value="{{ q }}" placeholder="Rechercher un produit…"
+    <input type="search" name="q" value="{{ q }}" placeholder="{{ t.search_placeholder }}"
            style="flex:1;padding:0.55rem 1rem;border:1px solid #ddd;border-radius:20px;font-size:0.9rem;outline:none;">
     <button type="submit"
             style="padding:0.55rem 1.1rem;background:#075e54;color:white;border:none;border-radius:20px;font-size:0.9rem;cursor:pointer;font-weight:600;">
@@ -130,7 +130,7 @@
 <form method="post" action="{% url 'vitrine:commander' slug=boutique.slug %}" id="order-form">
   {% csrf_token %}
 
-  <h2 style="font-size:1.2rem;margin-bottom:1rem;color:#075e54;">Nos produits</h2>
+  <h2 style="font-size:1.2rem;margin-bottom:1rem;color:#075e54;">{{ t.nos_produits }}</h2>
   <div class="produits-grid">
     {% for produit in produits %}
     <div class="produit-card">
@@ -142,7 +142,7 @@
       <div class="produit-card-body">
       <h3>{{ produit.nom }}</h3>
       <div class="prix">{{ produit.prix_formate }}</div>
-      <div class="stock">{{ produit.stock }} en stock</div>
+      <div class="stock">{{ produit.stock }} {{ t.en_stock }}</div>
       <div class="qte-control">
         <button type="button" onclick="changerQte({{ produit.pk }}, -1)">−</button>
         <input type="number" name="produit_{{ produit.pk }}" id="qte_{{ produit.pk }}"
@@ -157,36 +157,36 @@
   </div>
 
   <div class="form-section">
-    <h2>Votre commande</h2>
+    <h2>{{ t.votre_commande }}</h2>
 
     <div id="panier-resume">
-      <h3>🛒 Récapitulatif</h3>
+      <h3>{{ t.panier_recap }}</h3>
       <div id="panier-lignes"></div>
       <div id="panier-total"></div>
     </div>
 
     <div class="form-group">
-      <label for="prenom">Votre prénom</label>
-      <input type="text" name="prenom" id="prenom" placeholder="Ex: Moussa" required>
+      <label for="prenom">{{ t.label_prenom }}</label>
+      <input type="text" name="prenom" id="prenom" placeholder="{{ t.placeholder_prenom }}" required>
     </div>
     <div class="form-group">
-      <label for="telephone">Votre numéro WhatsApp</label>
+      <label for="telephone">{{ t.label_telephone }}</label>
       <input type="tel" name="telephone" id="telephone"
-             placeholder="Ex: +221771234567" required>
+             placeholder="{{ t.placeholder_telephone }}" required>
     </div>
     <div class="form-group">
-      <label for="adresse">Adresse de livraison</label>
+      <label for="adresse">{{ t.label_adresse }}</label>
       <textarea name="adresse" id="adresse" rows="2"
-                placeholder="Ex: Rue 10, Médina, Dakar"></textarea>
+                placeholder="{{ t.placeholder_adresse }}"></textarea>
     </div>
 
     {% if zones %}
     <div class="form-group">
-      <label for="zone_livraison">Zone de livraison</label>
+      <label for="zone_livraison">{{ t.label_zone }}</label>
       <select name="zone_livraison" id="zone_livraison"
               style="width:100%;padding:0.65rem 0.9rem;border:1px solid #ddd;border-radius:8px;font-size:0.95rem;"
               onchange="mettreAJourPanier()">
-        <option value="">— Choisir une zone —</option>
+        <option value="">{{ t.zone_placeholder }}</option>
         {% for zone in zones %}
         <option value="{{ zone.pk }}" data-frais="{{ zone.frais }}">
           {{ zone.nom }} — {{ zone.frais_formate }}
@@ -196,23 +196,20 @@
     </div>
     {% endif %}
 
-    <div class="wa-info">
-      📱 Après votre commande, envoyez votre référence de paiement Wave / Orange Money
-      au commerçant via WhatsApp pour confirmer.
-    </div>
+    <div class="wa-info">{{ t.wa_info }}</div>
 
     <button type="submit" class="btn btn-primary" id="btn-commander" style="width:100%;padding:.9rem;" disabled>
-      Commander
+      {{ t.btn_commander }}
     </button>
   </div>
 </form>
 {% else %}
 <div class="card" style="text-align:center;padding:3rem;">
   {% if q %}
-  <p style="font-size:1.1rem;color:#888;">Aucun produit trouvé pour « {{ q }} ».</p>
-  <a href="?{% if cat_active %}cat={{ cat_active }}{% endif %}" style="color:#075e54;font-size:0.9rem;">Voir tous les produits →</a>
+  <p style="font-size:1.1rem;color:#888;">{{ t.aucun_resultat_prefix }} « {{ q }} ».</p>
+  <a href="?{% if cat_active %}cat={{ cat_active }}{% endif %}" style="color:#075e54;font-size:0.9rem;">{{ t.voir_tous }}</a>
   {% else %}
-  <p style="font-size:1.1rem;color:#888;">Aucun produit disponible pour le moment.</p>
+  <p style="font-size:1.1rem;color:#888;">{{ t.aucun_produit }}</p>
   {% endif %}
 </div>
 {% endif %}
@@ -220,6 +217,7 @@
 
 {% block extra_js %}
 <script>
+  const TOTAL_LABEL = "{{ t.total_label }}";
   const prix = {};
   document.querySelectorAll("input[type=number]").forEach(input => {
     prix[input.id] = { p: parseInt(input.dataset.prix), nom: input.dataset.nom };
@@ -262,7 +260,7 @@
         html += `<div style="color:#888;margin-top:0.3rem;">• Livraison — ${formatFCFA(fraisLivraison)}</div>`;
       }
       document.getElementById("panier-lignes").innerHTML = html;
-      document.getElementById("panier-total").textContent = "Total : " + formatFCFA(totalProduits + fraisLivraison);
+      document.getElementById("panier-total").textContent = TOTAL_LABEL + " " + formatFCFA(totalProduits + fraisLivraison);
       resume.style.display = "block";
       btn.disabled = false;
     } else {

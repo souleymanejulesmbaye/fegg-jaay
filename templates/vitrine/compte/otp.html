@@ -1,6 +1,6 @@
 {% extends "vitrine/base.html" %}
 
-{% block title %}Vérification — {{ boutique.nom }}{% endblock %}
+{% block title %}{{ t.otp_titre }} — {{ boutique.nom }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -40,8 +40,8 @@
 {% block content %}
 <div class="auth-wrap">
   <div class="card">
-    <h1>Code de vérification</h1>
-    <p class="sub">Un code a été envoyé par WhatsApp à :</p>
+    <h1>{{ t.otp_titre }}</h1>
+    <p class="sub">{{ t.otp_sub }}</p>
     <div class="tel-badge">+{{ telephone }}</div>
 
     {% if erreur %}
@@ -61,14 +61,14 @@
         autofocus
         required
       >
-      <p class="expiry">Ce code expire dans 10 minutes.</p>
+      <p class="expiry">{{ t.otp_expire }}</p>
       <button type="submit" class="btn btn-primary btn-full">
-        Valider
+        {{ t.btn_valider }}
       </button>
     </form>
 
     <a href="{% url 'vitrine:connexion' boutique.slug %}" class="back-link">
-      Changer de numéro
+      {{ t.changer_numero }}
     </a>
   </div>
 </div>

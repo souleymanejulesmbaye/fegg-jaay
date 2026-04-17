@@ -69,6 +69,12 @@
   <a href="{% url 'vitrine:landing' %}" class="brand">🛍 Fëgg<span>Jaay</span></a>
   <div class="nav-links">
     {% block nav_extra %}{% endblock %}
+    {% if t %}
+    <a href="?lang={{ t.lang_toggle_code }}"
+       style="font-size:0.8rem;padding:0.25rem 0.7rem;border:1px solid rgba(255,255,255,.4);border-radius:12px;color:white;margin-left:0.8rem;">
+      {{ t.lang_toggle }}
+    </a>
+    {% endif %}
     <a href="{% url 'dashboard:login' %}">Espace commerçant</a>
   </div>
 </div>

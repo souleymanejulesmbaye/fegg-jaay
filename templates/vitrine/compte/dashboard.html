@@ -1,6 +1,7 @@
 {% extends "vitrine/base.html" %}
+{% load vitrine_extras %}
 
-{% block title %}Mon compte — {{ boutique.nom }}{% endblock %}
+{% block title %}{{ t.mon_compte }} — {{ boutique.nom }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -56,21 +57,21 @@
 
 <div class="compte-header">
   <div>
-    <h1>Bonjour{% if client.prenom %}, {{ client.prenom }}{% endif %} 👋</h1>
+    <h1>{{ t.bonjour }}{% if client.prenom %}, {{ client.prenom }}{% endif %} 👋</h1>
     <div class="tel">+{{ client.telephone }}</div>
   </div>
   <div style="display:flex;gap:0.8rem;align-items:center;">
     <a href="{% url 'vitrine:boutique' boutique.slug %}" class="btn btn-outline btn-sm">
-      Commander
+      {{ t.btn_commander_lien }}
     </a>
     <form method="post" action="{% url 'vitrine:deconnexion' boutique.slug %}" style="margin:0;">
       {% csrf_token %}
-      <button type="submit" class="btn btn-danger btn-sm">Déconnexion</button>
+      <button type="submit" class="btn btn-danger btn-sm">{{ t.btn_deconnexion }}</button>
     </form>
   </div>
 </div>
 
-<h2 style="font-size:1.1rem;margin-bottom:1rem;color:#555;">Mes commandes ({{ commandes|length }})</h2>
+<h2 style="font-size:1.1rem;margin-bottom:1rem;color:#555;">{{ t.mes_commandes }} ({{ commandes|length }})</h2>
 
 {% if commandes %}
   {% for commande in commandes %}
@@ -80,7 +81,9 @@
         <span class="cmd-ref">{{ commande.numero_ref }}</span>
         <span class="cmd-date">— {{ commande.created_at|date:"d/m/Y H:i" }}</span>
       </div>
-      <span class="badge badge-{{ commande.statut }}">{{ commande.get_statut_display }}</span>
+      <span class="badge badge-{{ commande.statut }}">
+        {{ t|statut_label:commande.statut }}
+      </span>
     </div>
 
     <ul class="lignes">
@@ -92,11 +95,11 @@
       {% endfor %}
     </ul>
 
-    <div class="cmd-total">Total : {{ commande.montant_formate }}</div>
+    <div class="cmd-total">{{ t.total_label }} {{ commande.montant_formate }}</div>
 
     {% if commande.statut == "attente_paiement" %}
     <div style="margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid #f0f0f0;font-size:0.85rem;color:#856404;">
-      En attente de paiement — payez via Wave ou Orange Money et envoyez la référence de transaction.
+      {{ t.attente_paiement_info }}
     </div>
     {% endif %}
   </div>
@@ -105,9 +108,9 @@
 {% else %}
   <div class="empty-state">
     <div class="icon">🛒</div>
-    <p>Vous n'avez pas encore de commande.</p>
+    <p>{{ t.aucune_commande }}</p>
     <a href="{% url 'vitrine:boutique' boutique.slug %}" class="btn btn-primary" style="margin-top:1rem;">
-      Voir le catalogue
+      {{ t.voir_catalogue_btn }}
     </a>
   </div>
 {% endif %}

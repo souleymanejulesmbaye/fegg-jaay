@@ -1,6 +1,6 @@
 {% extends "vitrine/base.html" %}
 
-{% block title %}Connexion — {{ boutique.nom }}{% endblock %}
+{% block title %}{{ t.connexion_titre }} — {{ boutique.nom }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -44,11 +44,8 @@
 {% block content %}
 <div class="auth-wrap">
   <div class="card">
-    <h1>Connexion</h1>
-    <p class="sub">
-      <span class="wa-icon">💬</span>
-      Entrez votre numéro WhatsApp. Vous recevrez un code de confirmation.
-    </p>
+    <h1>{{ t.connexion_titre }}</h1>
+    <p class="sub">{{ t.connexion_sub }}</p>
 
     {% if erreur %}
     <div class="erreur">{{ erreur }}</div>
@@ -57,7 +54,7 @@
     <form method="post">
       {% csrf_token %}
       <div class="form-group">
-        <label for="telephone">Numéro WhatsApp</label>
+        <label for="telephone">{{ t.label_telephone_connexion }}</label>
         <input
           type="tel"
           id="telephone"
@@ -68,13 +65,13 @@
         >
       </div>
       <button type="submit" class="btn btn-primary btn-full">
-        Recevoir mon code
+        {{ t.btn_recevoir_code }}
       </button>
     </form>
 
     <p class="hint">
-      Pas encore client ?
-      <a href="{% url 'vitrine:boutique' boutique.slug %}">Voir le catalogue</a>
+      {{ t.pas_encore_client }}
+      <a href="{% url 'vitrine:boutique' boutique.slug %}">{{ t.voir_catalogue }}</a>
     </p>
   </div>
 </div>

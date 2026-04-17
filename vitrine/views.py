@@ -25,6 +25,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods, require_POST
 
 from boutiques.models import Boutique, Categorie, Client, Commande, LigneCommande, OTPCode, Produit, ZoneLivraison
+from vitrine.translations import get_lang, get_translations
 
 OTP_EXPIRY_MINUTES = 10
 
@@ -53,6 +54,7 @@ def boutique(request, slug):
 
     categories = Categorie.objects.filter(boutique=shop, produits__actif=True, produits__stock__gt=0).distinct()
     zones = ZoneLivraison.objects.filter(boutique=shop, actif=True).order_by("frais", "nom")
+    lang = get_lang(request)
     return render(request, "vitrine/boutique.html", {
         "boutique": shop,
         "produits": produits,
@@ -60,6 +62,8 @@ def boutique(request, slug):
         "cat_active": cat_id,
         "zones": zones,
         "q": q,
+        "lang": lang,
+        "t": get_translations(lang),
     })
 
 
@@ -218,7 +222,8 @@ def connexion(request, slug):
     if request.method == "POST":
         telephone_raw = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "")
         if not telephone_raw:
-            erreur = "Veuillez entrer votre numéro WhatsApp."
+            t_err = get_translations(get_lang(request))
+            erreur = t_err["err_telephone_vide"]
         else:
             if not telephone_raw.startswith("+"):
                 telephone_raw = "+" + telephone_raw
@@ -253,9 +258,12 @@ def connexion(request, slug):
             request.session[_otp_tel_key(shop)] = telephone_stocke
             return redirect("vitrine:otp", slug=slug)
 
+    lang = get_lang(request)
     return render(request, "vitrine/compte/connexion.html", {
         "boutique": shop,
         "erreur": erreur,
+        "lang": lang,
+        "t": get_translations(lang),
     })
 
 
@@ -282,6 +290,7 @@ def verifier_otp(request, slug):
                 utilise=False,
             ).order_by("-created_at").first()
 
+            t_err = get_translations(get_lang(request))
             if otp and otp.est_valide:
                 otp.utilise = True
                 otp.save(update_fields=["utilise"])
@@ -289,16 +298,20 @@ def verifier_otp(request, slug):
                 del request.session[_otp_tel_key(shop)]
                 return redirect("vitrine:compte", slug=slug)
             elif otp and not otp.est_valide:
-                erreur = "Ce code a expiré. Recommencez."
+                erreur = t_err["err_otp_expire"]
             else:
-                erreur = "Code incorrect. Vérifiez votre WhatsApp."
+                erreur = t_err["err_otp_incorrect"]
         except Client.DoesNotExist:
-            erreur = "Numéro introuvable."
+            t_err = get_translations(get_lang(request))
+            erreur = t_err["err_numero_inconnu"]
 
+    lang = get_lang(request)
     return render(request, "vitrine/compte/otp.html", {
         "boutique": shop,
         "telephone": telephone,
         "erreur": erreur,
+        "lang": lang,
+        "t": get_translations(lang),
     })
 
 
@@ -314,10 +327,13 @@ def compte(request, slug):
         .prefetch_related("lignes__produit")
         .order_by("-created_at")
     )
+    lang = get_lang(request)
     return render(request, "vitrine/compte/dashboard.html", {
         "boutique": shop,
         "client": client,
         "commandes": commandes,
+        "lang": lang,
+        "t": get_translations(lang),
     })
 
 
@@ -374,7 +390,10 @@ def confirmation(request, slug, ref):
         numero_ref=ref,
         boutique=shop,
     )
+    lang = get_lang(request)
     return render(request, "vitrine/confirmation.html", {
         "boutique": shop,
         "commande": commande,
+        "lang": lang,
+        "t": get_translations(lang),
     })
