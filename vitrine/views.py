@@ -203,6 +203,9 @@ def connexion(request, slug):
                 expires_at=timezone.now() + timezone.timedelta(minutes=OTP_EXPIRY_MINUTES),
             )
 
+            from django.conf import settings
+            if settings.DEBUG:
+                logger.info(">>> OTP DEV [%s] : %s <<<", telephone_stocke, code)
             try:
                 from whatsapp.sender import envoyer_otp
                 envoyer_otp(shop, telephone_stocke, code)
