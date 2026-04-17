@@ -24,7 +24,7 @@ from django.db.models.functions import TruncDate
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 
-from boutiques.models import Boutique, Categorie, Commande, LigneCommande, Produit, Client, MessageLog, ZoneLivraison
+from boutiques.models import Boutique, Categorie, Commande, LigneCommande, Produit, Client, MessageLog, ZoneLivraison, PushSubscription
 
 logger = logging.getLogger(__name__)
 
@@ -862,6 +862,47 @@ def superadmin_changer_plan(request, boutique_id):
     else:
         messages.error(request, "Plan invalide.")
     return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+
+# ─── Web Push ────────────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def push_subscribe(request):
+    """Enregistre un abonnement push navigateur pour la boutique du commerçant."""
+    boutique = _get_boutique(request)
+    if not boutique:
+        return JsonResponse({"error": "no boutique"}, status=400)
+
+    import json as _json
+    try:
+        data = _json.loads(request.body)
+        endpoint = data["endpoint"]
+        keys = data["keys"]
+        PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={
+                "boutique": boutique,
+                "p256dh": keys["p256dh"],
+                "auth": keys["auth"],
+            },
+        )
+        return JsonResponse({"ok": True})
+    except (KeyError, ValueError):
+        return JsonResponse({"error": "invalid"}, status=400)
+
+
+@login_required
+@require_POST
+def push_unsubscribe(request):
+    """Supprime un abonnement push navigateur."""
+    import json as _json
+    try:
+        data = _json.loads(request.body)
+        PushSubscription.objects.filter(endpoint=data["endpoint"]).delete()
+    except (KeyError, ValueError):
+        pass
+    return JsonResponse({"ok": True})
 
 
 # ─── API JSON interne (pour les mises à jour AJAX) ───────────────────────────

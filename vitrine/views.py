@@ -161,6 +161,13 @@ def passer_commande(request, slug):
             except Exception:
                 logger.warning("Notification commerçant impossible (commande %s).", commande.numero_ref)
 
+            # Notification push navigateur au commerçant
+            try:
+                from dashboard.push import envoyer_push_nouvelle_commande
+                envoyer_push_nouvelle_commande(shop, commande)
+            except Exception:
+                logger.warning("Push notification impossible (commande %s).", commande.numero_ref)
+
             # Alertes stock bas pour les produits commandés
             try:
                 from whatsapp.sender import notifier_alerte_stock

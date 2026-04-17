@@ -407,6 +407,28 @@ class OTPCode(models.Model):
         return not self.utilise and timezone.now() < self.expires_at
 
 
+# ─── PushSubscription ─────────────────────────────────────────────────────────
+
+class PushSubscription(models.Model):
+    """Abonnement push navigateur d'un commerçant pour les notifications web."""
+
+    boutique = models.ForeignKey(
+        Boutique, on_delete=models.CASCADE, related_name="push_subscriptions"
+    )
+    endpoint = models.TextField(unique=True)
+    p256dh = models.TextField()
+    auth = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Push Subscription"
+        verbose_name_plural = "Push Subscriptions"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Push {self.boutique.nom} — {self.endpoint[:60]}…"
+
+
 # ─── MessageLog ───────────────────────────────────────────────────────────────
 
 class MessageLog(models.Model):

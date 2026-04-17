@@ -33,3 +33,4 @@ whitenoise
 
 # Dev / test
 django-extensions
+pywebpush==2.3.0

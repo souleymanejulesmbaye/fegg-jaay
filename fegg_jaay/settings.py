@@ -64,6 +64,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "dashboard.context_processors.vapid_public_key",
             ],
         },
     },
@@ -111,6 +112,11 @@ CLOUDINARY_STORAGE = {
 }
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# ─── Web Push VAPID ──────────────────────────────────────────────────────────
+VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="").replace("\\n", "\n")
+VAPID_CLAIMS_EMAIL = config("VAPID_CLAIMS_EMAIL", default="admin@feggjaay.com")
 
 # ─── Clé primaire par défaut ──────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
