@@ -588,6 +588,7 @@ def config_boutique(request):
         boutique.nom = request.POST.get("nom", boutique.nom).strip()
         boutique.ville = request.POST.get("ville", boutique.ville).strip()
         boutique.proprietaire_tel = request.POST.get("proprietaire_tel", boutique.proprietaire_tel).strip()
+        boutique.description = request.POST.get("description", boutique.description).strip()
         boutique.message_bienvenue = request.POST.get("message_bienvenue", boutique.message_bienvenue).strip()
 
         # Mise à jour stock_alerte global sur tous les produits si fourni
@@ -595,7 +596,7 @@ def config_boutique(request):
         if stock_alerte_global.isdigit():
             boutique.produits.filter(actif=True).update(stock_alerte=int(stock_alerte_global))
 
-        boutique.save(update_fields=["nom", "ville", "proprietaire_tel", "message_bienvenue", "updated_at"])
+        boutique.save(update_fields=["nom", "ville", "proprietaire_tel", "description", "message_bienvenue", "updated_at"])
         messages.success(request, "Configuration mise à jour.")
         return redirect("dashboard:config_boutique")
 

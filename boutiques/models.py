@@ -72,6 +72,12 @@ class Boutique(models.Model):
     actif = models.BooleanField(default=True)
     abonnement_fin = models.DateField(null=True, blank=True)
 
+    # Description publique affichée sur la vitrine
+    description = models.TextField(
+        blank=True,
+        help_text="Description courte visible sur la vitrine (horaires, adresse, infos pratiques…)",
+    )
+
     # Message d'accueil affiché au premier contact
     message_bienvenue = models.TextField(
         default=(

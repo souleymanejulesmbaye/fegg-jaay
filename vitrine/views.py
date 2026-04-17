@@ -41,11 +41,14 @@ def boutique(request, slug):
     """Vitrine publique d'une boutique : catalogue + formulaire de commande."""
     shop = get_object_or_404(Boutique, slug=slug, actif=True)
 
-    # Filtre par catégorie
+    # Filtre par catégorie + recherche
     cat_id = request.GET.get("cat", "")
+    q = request.GET.get("q", "").strip()
     produits = Produit.objects.filter(boutique=shop, actif=True, stock__gt=0)
     if cat_id:
         produits = produits.filter(categorie_id=cat_id)
+    if q:
+        produits = produits.filter(nom__icontains=q)
     produits = produits.select_related("categorie").order_by("nom")
 
     categories = Categorie.objects.filter(boutique=shop, produits__actif=True, produits__stock__gt=0).distinct()
@@ -56,6 +59,7 @@ def boutique(request, slug):
         "categories": categories,
         "cat_active": cat_id,
         "zones": zones,
+        "q": q,
     })
 
 

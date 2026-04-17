@@ -23,10 +23,20 @@
   .produit-card {
     background: white; border-radius: 10px;
     box-shadow: 0 2px 6px rgba(0,0,0,.07);
-    padding: 1.2rem; position: relative;
+    overflow: hidden; position: relative;
   }
+  .produit-card-img {
+    width: 100%; height: 160px; object-fit: cover;
+    display: block; background: #f0f2f5;
+  }
+  .produit-card-img-placeholder {
+    width: 100%; height: 120px; background: #f0f2f5;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: #ccc;
+  }
+  .produit-card-body { padding: 1rem; }
   .produit-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
-  .produit-card .prix { color: #075e54; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.8rem; }
+  .produit-card .prix { color: #075e54; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
   .produit-card .stock { font-size: 0.8rem; color: #888; margin-bottom: 0.8rem; }
   .qte-control {
     display: flex; align-items: center; gap: 0.5rem;
@@ -77,7 +87,27 @@
 <div class="boutique-header">
   <h1>{{ boutique.nom }}</h1>
   <div class="meta">📍 {{ boutique.ville }}</div>
+  {% if boutique.description %}
+  <p style="margin-top:0.8rem;opacity:.9;font-size:0.92rem;max-width:600px;margin-left:auto;margin-right:auto;">{{ boutique.description }}</p>
+  {% endif %}
 </div>
+
+<!-- Recherche -->
+<form method="get" action="" style="margin-bottom:1rem;">
+  {% if cat_active %}<input type="hidden" name="cat" value="{{ cat_active }}">{% endif %}
+  <div style="display:flex;gap:0.5rem;">
+    <input type="search" name="q" value="{{ q }}" placeholder="Rechercher un produit…"
+           style="flex:1;padding:0.55rem 1rem;border:1px solid #ddd;border-radius:20px;font-size:0.9rem;outline:none;">
+    <button type="submit"
+            style="padding:0.55rem 1.1rem;background:#075e54;color:white;border:none;border-radius:20px;font-size:0.9rem;cursor:pointer;font-weight:600;">
+      🔍
+    </button>
+    {% if q %}
+    <a href="?{% if cat_active %}cat={{ cat_active }}{% endif %}"
+       style="padding:0.55rem 1rem;background:#f0f2f5;color:#555;border-radius:20px;font-size:0.85rem;text-decoration:none;display:flex;align-items:center;">✕</a>
+    {% endif %}
+  </div>
+</form>
 
 {% if categories %}
 <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.2rem;">
@@ -104,6 +134,12 @@
   <div class="produits-grid">
     {% for produit in produits %}
     <div class="produit-card">
+      {% if produit.photo %}
+      <img src="{{ produit.photo.url }}" alt="{{ produit.nom }}" class="produit-card-img">
+      {% else %}
+      <div class="produit-card-img-placeholder">🛒</div>
+      {% endif %}
+      <div class="produit-card-body">
       <h3>{{ produit.nom }}</h3>
       <div class="prix">{{ produit.prix_formate }}</div>
       <div class="stock">{{ produit.stock }} en stock</div>
@@ -115,6 +151,7 @@
                onchange="mettreAJourPanier()">
         <button type="button" onclick="changerQte({{ produit.pk }}, 1)">+</button>
       </div>
+      </div>{# /produit-card-body #}
     </div>
     {% endfor %}
   </div>
@@ -171,7 +208,12 @@
 </form>
 {% else %}
 <div class="card" style="text-align:center;padding:3rem;">
+  {% if q %}
+  <p style="font-size:1.1rem;color:#888;">Aucun produit trouvé pour « {{ q }} ».</p>
+  <a href="?{% if cat_active %}cat={{ cat_active }}{% endif %}" style="color:#075e54;font-size:0.9rem;">Voir tous les produits →</a>
+  {% else %}
   <p style="font-size:1.1rem;color:#888;">Aucun produit disponible pour le moment.</p>
+  {% endif %}
 </div>
 {% endif %}
 {% endblock %}
