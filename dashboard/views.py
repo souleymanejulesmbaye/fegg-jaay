@@ -757,6 +757,113 @@ def reset_test_bot(request):
     return redirect("dashboard:test_bot")
 
 
+# ─── Super-Admin ─────────────────────────────────────────────────────────────
+
+def _superuser_required(view_fn):
+    """Décorateur : réserve la vue aux superutilisateurs Django."""
+    from functools import wraps
+    @wraps(view_fn)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated or not request.user.is_superuser:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        return view_fn(request, *args, **kwargs)
+    return wrapper
+
+
+@_superuser_required
+def superadmin_accueil(request):
+    """Vue globale super-admin : stats plateforme + liste boutiques."""
+    boutiques = (
+        Boutique.objects.all()
+        .annotate(
+            nb_commandes=Count("commandes"),
+            nb_clients=Count("clients"),
+            ca_total=Sum("commandes__montant_total"),
+        )
+        .order_by("-created_at")
+    )
+
+    stats_globales = {
+        "nb_boutiques": Boutique.objects.count(),
+        "nb_boutiques_actives": Boutique.objects.filter(actif=True).count(),
+        "nb_commandes": Commande.objects.count(),
+        "nb_clients": Client.objects.count(),
+        "ca_total": Commande.objects.filter(
+            statut__in=["payee", "en_preparation", "livree"]
+        ).aggregate(total=Sum("montant_total"))["total"] or 0,
+    }
+
+    recherche = request.GET.get("q", "").strip()
+    if recherche:
+        boutiques = boutiques.filter(
+            Q(nom__icontains=recherche) | Q(ville__icontains=recherche)
+        )
+
+    return render(request, "dashboard/superadmin/accueil.html", {
+        "boutiques": boutiques,
+        "stats": stats_globales,
+        "recherche": recherche,
+    })
+
+
+@_superuser_required
+def superadmin_boutique(request, boutique_id):
+    """Détail d'une boutique côté super-admin."""
+    shop = get_object_or_404(Boutique, pk=boutique_id)
+
+    stats = {
+        "nb_commandes": Commande.objects.filter(boutique=shop).count(),
+        "nb_clients": Client.objects.filter(boutique=shop).count(),
+        "nb_produits": Produit.objects.filter(boutique=shop, actif=True).count(),
+        "ca_total": Commande.objects.filter(
+            boutique=shop, statut__in=["payee", "en_preparation", "livree"]
+        ).aggregate(total=Sum("montant_total"))["total"] or 0,
+        "commandes_attente": Commande.objects.filter(boutique=shop, statut="attente_paiement").count(),
+    }
+
+    dernieres_commandes = (
+        Commande.objects.filter(boutique=shop)
+        .select_related("client")
+        .order_by("-created_at")[:10]
+    )
+
+    return render(request, "dashboard/superadmin/boutique.html", {
+        "shop": shop,
+        "stats": stats,
+        "dernieres_commandes": dernieres_commandes,
+        "plans": Boutique.PLAN_CHOICES,
+    })
+
+
+@_superuser_required
+@require_POST
+def superadmin_toggle_boutique(request, boutique_id):
+    """Active ou désactive une boutique."""
+    shop = get_object_or_404(Boutique, pk=boutique_id)
+    shop.actif = not shop.actif
+    shop.save(update_fields=["actif", "updated_at"])
+    etat = "activée" if shop.actif else "désactivée"
+    messages.success(request, f"Boutique « {shop.nom} » {etat}.")
+    return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+
+@_superuser_required
+@require_POST
+def superadmin_changer_plan(request, boutique_id):
+    """Change le plan d'abonnement d'une boutique."""
+    shop = get_object_or_404(Boutique, pk=boutique_id)
+    nouveau_plan = request.POST.get("plan", "").strip()
+    plans_valides = [p[0] for p in Boutique.PLAN_CHOICES]
+    if nouveau_plan in plans_valides:
+        shop.plan = nouveau_plan
+        shop.save(update_fields=["plan", "updated_at"])
+        messages.success(request, f"Plan mis à jour : {shop.get_plan_display()}.")
+    else:
+        messages.error(request, "Plan invalide.")
+    return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+
 # ─── API JSON interne (pour les mises à jour AJAX) ───────────────────────────
 
 @login_required

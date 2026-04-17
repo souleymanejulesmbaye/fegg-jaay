@@ -1,0 +1,157 @@
+{% extends "dashboard/base.html" %}
+{% load humanize %}
+
+{% block title %}{{ shop.nom }} — Super Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .shop-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+  .shop-header h1 { font-size: 1.4rem; color: #075e54; margin-bottom: 0.2rem; }
+  .shop-meta { font-size: 0.85rem; color: #888; }
+  .shop-meta span { margin-right: 1rem; }
+  .badge-actif { background: #d4edda; color: #155724; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.8rem; font-weight: 600; }
+  .badge-inactif { background: #f8d7da; color: #721c24; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.8rem; font-weight: 600; }
+  .badge-plan { background: #e2d9f3; color: #6f42c1; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.8rem; font-weight: 600; }
+  .actions-row { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center; }
+  .section-title { font-size: 1rem; font-weight: 600; color: #555; margin-bottom: 0.8rem; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .badge-attente_paiement { background: #fff3cd; color: #856404; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
+  .badge-payee { background: #cce5ff; color: #004085; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
+  .badge-en_preparation { background: #e2d9f3; color: #6f42c1; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
+  .badge-livree { background: #d4edda; color: #155724; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
+  .badge-annulee { background: #f8d7da; color: #721c24; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media(max-width:600px){ .info-grid { grid-template-columns: 1fr; } }
+  .info-item label { font-size:0.8rem; color:#aaa; display:block; }
+  .info-item span { font-size:0.95rem; color:#333; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="shop-header">
+  <div>
+    <h1>
+      {{ shop.nom }}
+      {% if shop.actif %}<span class="badge-actif">Active</span>{% else %}<span class="badge-inactif">Inactive</span>{% endif %}
+      <span class="badge-plan">{{ shop.get_plan_display }}</span>
+    </h1>
+    <div class="shop-meta">
+      <span>📍 {{ shop.ville }}</span>
+      <span>📱 +{{ shop.telephone_wa }}</span>
+      <span>🔗 /boutique/{{ shop.slug }}/</span>
+      <span>📅 Créée le {{ shop.created_at|date:"d/m/Y" }}</span>
+    </div>
+  </div>
+  <a href="{% url 'dashboard:superadmin_accueil' %}" class="btn btn-secondary">← Retour</a>
+</div>
+
+<!-- Stats boutique -->
+<div class="stats-grid" style="margin-bottom:1.5rem;">
+  <div class="stat-card">
+    <div class="stat-number">{{ stats.nb_commandes }}</div>
+    <div class="stat-label">Commandes</div>
+    <div style="font-size:0.8rem;color:#e67e22;margin-top:0.2rem;">{{ stats.commandes_attente }} en attente</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ stats.nb_clients }}</div>
+    <div class="stat-label">Clients</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ stats.nb_produits }}</div>
+    <div class="stat-label">Produits actifs</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="font-size:1.4rem;">{{ stats.ca_total|intcomma }} F</div>
+    <div class="stat-label">CA (payé)</div>
+  </div>
+</div>
+
+<!-- Infos & actions côte à côte -->
+<div class="info-grid" style="margin-bottom:1.5rem;">
+
+  <!-- Infos boutique -->
+  <div class="card">
+    <div class="section-title">Informations</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+      <div class="info-item"><label>Propriétaire</label><span>{{ shop.proprietaire.username|default:"—" }}</span></div>
+      <div class="info-item"><label>Téléphone</label><span>+{{ shop.proprietaire_tel }}</span></div>
+      <div class="info-item"><label>WhatsApp Phone ID</label><span>{{ shop.wa_phone_id|default:"Non configuré" }}</span></div>
+      <div class="info-item"><label>Fin abonnement</label><span>{{ shop.abonnement_fin|date:"d/m/Y"|default:"—" }}</span></div>
+    </div>
+    {% if shop.description %}
+    <div class="info-item" style="margin-top:0.8rem;"><label>Description vitrine</label><span>{{ shop.description }}</span></div>
+    {% endif %}
+    <div style="margin-top:1rem;">
+      <a href="{% url 'vitrine:boutique' shop.slug %}" target="_blank" class="btn btn-secondary" style="font-size:0.85rem;">
+        🔗 Voir la vitrine
+      </a>
+    </div>
+  </div>
+
+  <!-- Actions admin -->
+  <div class="card">
+    <div class="section-title">Actions</div>
+
+    <!-- Toggle actif -->
+    <form method="post" action="{% url 'dashboard:superadmin_toggle' shop.pk %}" style="margin-bottom:1rem;">
+      {% csrf_token %}
+      {% if shop.actif %}
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Désactiver cette boutique ?')">
+          ⛔ Désactiver la boutique
+        </button>
+      {% else %}
+        <button type="submit" class="btn btn-primary">
+          ✅ Réactiver la boutique
+        </button>
+      {% endif %}
+    </form>
+
+    <!-- Changer plan -->
+    <form method="post" action="{% url 'dashboard:superadmin_plan' shop.pk %}">
+      {% csrf_token %}
+      <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+        <select name="plan" style="padding:0.5rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+          {% for code, label in plans %}
+          <option value="{{ code }}" {% if shop.plan == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Changer le plan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Dernières commandes -->
+<div class="card">
+  <div class="section-title">Dernières commandes (10)</div>
+  {% if dernieres_commandes %}
+  <table>
+    <thead>
+      <tr>
+        <th>Réf.</th>
+        <th>Client</th>
+        <th>Statut</th>
+        <th class="num">Montant</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in dernieres_commandes %}
+      <tr>
+        <td><strong>{{ c.numero_ref }}</strong></td>
+        <td>{{ c.client.prenom|default:"—" }} (+{{ c.client.telephone }})</td>
+        <td><span class="badge-{{ c.statut }}">{{ c.get_statut_display }}</span></td>
+        <td class="num">{{ c.montant_total|intcomma }} F</td>
+        <td style="font-size:0.85rem;color:#aaa;">{{ c.created_at|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p style="color:#aaa;text-align:center;padding:1rem;">Aucune commande.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

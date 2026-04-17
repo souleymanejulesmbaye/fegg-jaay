@@ -98,6 +98,7 @@
     <a href="{% url 'dashboard:test_bot' %}">Test Bot</a>
     <a href="{% url 'dashboard:zones_livraison' %}">Livraisons</a>
     <a href="{% url 'dashboard:config_boutique' %}">Config</a>
+    {% if user.is_superuser %}<a href="{% url 'dashboard:superadmin_accueil' %}" style="color:#ffd700;">⚙ Super Admin</a>{% endif %}
     <a href="{% url 'dashboard:logout' %}">Déconnexion</a>
   </nav>
   {% endif %}

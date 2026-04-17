@@ -47,4 +47,10 @@ urlpatterns = [
 
     # API interne JSON
     path("api/stats/", views.api_stats, name="api_stats"),
+
+    # Super-Admin
+    path("superadmin/", views.superadmin_accueil, name="superadmin_accueil"),
+    path("superadmin/boutique/<uuid:boutique_id>/", views.superadmin_boutique, name="superadmin_boutique"),
+    path("superadmin/boutique/<uuid:boutique_id>/toggle/", views.superadmin_toggle_boutique, name="superadmin_toggle"),
+    path("superadmin/boutique/<uuid:boutique_id>/plan/", views.superadmin_changer_plan, name="superadmin_plan"),
 ]
