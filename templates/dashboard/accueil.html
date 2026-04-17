@@ -5,10 +5,87 @@
 <style>
   .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
   @media (max-width: 750px) { .chart-grid { grid-template-columns: 1fr; } }
+
+  /* Onboarding */
+  .onboarding {
+    background: linear-gradient(135deg, #e8f5e9, #f0faf0);
+    border: 1px solid #a5d6a7;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .onboarding h3 {
+    color: #2e7d32; font-size: 1.05rem; margin-bottom: 0.3rem;
+  }
+  .onboarding .sub {
+    color: #666; font-size: 0.85rem; margin-bottom: 1.2rem;
+  }
+  .onboarding-steps {
+    display: flex; gap: 0.75rem; flex-wrap: wrap;
+  }
+  .onboarding-step {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: white; border-radius: 8px;
+    padding: 0.6rem 1rem;
+    border: 2px solid #e0e0e0;
+    font-size: 0.88rem; font-weight: 600;
+    text-decoration: none; color: #333;
+    transition: border-color .2s, box-shadow .2s;
+    flex: 1; min-width: 160px;
+  }
+  .onboarding-step.done {
+    border-color: #a5d6a7; color: #2e7d32; background: #f1f8f1;
+  }
+  .onboarding-step.todo {
+    border-color: #25d366; color: #075e54;
+    box-shadow: 0 2px 8px rgba(37,211,102,.2);
+  }
+  .onboarding-step .step-icon { font-size: 1.1rem; }
+  .onboarding-progress {
+    margin-top: 1rem; font-size: 0.8rem; color: #888;
+  }
+  .progress-bar {
+    height: 6px; background: #e0e0e0; border-radius: 3px;
+    margin-top: 0.4rem; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: #25d366; border-radius: 3px;
+    transition: width .4s;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
+
+{% if show_onboarding %}
+<div class="onboarding">
+  <h3>🚀 Configurez votre boutique</h3>
+  <p class="sub">{{ onboarding_done }}/{{ onboarding_total }} étapes complètes — suivez ces étapes pour commencer à vendre.</p>
+  <div class="onboarding-steps">
+    {% for step in onboarding_steps %}
+      {% if step.done %}
+        <span class="onboarding-step done">
+          <span class="step-icon">✅</span> {{ step.label }}
+        </span>
+      {% elif step.url %}
+        <a href="{% url step.url %}" class="onboarding-step todo">
+          <span class="step-icon">▶</span> {{ step.label }}
+        </a>
+      {% else %}
+        <span class="onboarding-step">
+          <span class="step-icon">⬜</span> {{ step.label }}
+        </span>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="onboarding-progress">
+    <div class="progress-bar">
+      <div class="progress-fill" style="width:{{ onboarding_pct }}%"></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <h2 style="margin-bottom:1.5rem;">
   Bonjour — {{ boutique.nom }}
   <small style="font-size:0.75rem;color:#888;font-weight:400;"> {{ maintenant|date:"d/m/Y H:i" }}</small>

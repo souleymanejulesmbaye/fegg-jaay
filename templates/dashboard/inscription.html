@@ -70,9 +70,16 @@
     <div class="field">
       <label for="ville">Ville</label>
       <select id="ville" name="ville">
-        {% for v in "Dakar,Thiès,Saint-Louis,Ziguinchor,Kaolack,Diourbel,Touba,Mbour,Rufisque,Louga"|split:"," %}
-        <option value="{{ v }}" {% if post.ville == v %}selected{% endif %}>{{ v }}</option>
-        {% endfor %}
+          <option value="Dakar" {% if post.ville == "Dakar" or not post.ville %}selected{% endif %}>Dakar</option>
+        <option value="Thiès" {% if post.ville == "Thiès" %}selected{% endif %}>Thiès</option>
+        <option value="Saint-Louis" {% if post.ville == "Saint-Louis" %}selected{% endif %}>Saint-Louis</option>
+        <option value="Ziguinchor" {% if post.ville == "Ziguinchor" %}selected{% endif %}>Ziguinchor</option>
+        <option value="Kaolack" {% if post.ville == "Kaolack" %}selected{% endif %}>Kaolack</option>
+        <option value="Diourbel" {% if post.ville == "Diourbel" %}selected{% endif %}>Diourbel</option>
+        <option value="Touba" {% if post.ville == "Touba" %}selected{% endif %}>Touba</option>
+        <option value="Mbour" {% if post.ville == "Mbour" %}selected{% endif %}>Mbour</option>
+        <option value="Rufisque" {% if post.ville == "Rufisque" %}selected{% endif %}>Rufisque</option>
+        <option value="Louga" {% if post.ville == "Louga" %}selected{% endif %}>Louga</option>
       </select>
     </div>
 

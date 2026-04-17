@@ -209,6 +209,20 @@ def accueil(request):
         .order_by("-total_vendu")[:5]
     )
 
+    # Onboarding : calcul des étapes complètes
+    has_products = Produit.objects.filter(boutique=boutique, actif=True).exists()
+    has_wa_config = bool(boutique.wa_phone_id and boutique.wa_token)
+    has_tested_bot = MessageLog.objects.filter(boutique=boutique).exists()
+    onboarding_steps = [
+        {"label": "Boutique créée", "done": True, "url": None},
+        {"label": "Ajouter vos produits", "done": has_products, "url": "dashboard:creer_produit"},
+        {"label": "Configurer WhatsApp API", "done": has_wa_config, "url": "dashboard:config_boutique"},
+        {"label": "Tester votre bot", "done": has_tested_bot, "url": "dashboard:test_bot"},
+    ]
+    onboarding_done = sum(1 for s in onboarding_steps if s["done"])
+    onboarding_total = len(onboarding_steps)
+    show_onboarding = onboarding_done < onboarding_total
+
     context = {
         "boutique": boutique,
         "stats": stats,
@@ -219,6 +233,11 @@ def accueil(request):
         "jours_nb": jours_nb,
         "jours_ca": jours_ca,
         "top_produits": top_produits,
+        "onboarding_steps": onboarding_steps,
+        "show_onboarding": show_onboarding,
+        "onboarding_done": onboarding_done,
+        "onboarding_total": onboarding_total,
+        "onboarding_pct": int(onboarding_done / onboarding_total * 100),
     }
     return render(request, "dashboard/accueil.html", context)
 
