@@ -35,6 +35,9 @@ urlpatterns = [
     # Configuration boutique
     path("config/", views.config_boutique, name="config_boutique"),
 
+    # Catégories
+    path("produits/categories/", views.gestion_categories, name="gestion_categories"),
+
     # Livraisons
     path("livraisons/zones/", views.zones_livraison, name="zones_livraison"),
 

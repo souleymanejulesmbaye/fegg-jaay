@@ -22,6 +22,30 @@
              style="width:100%;padding:0.65rem;border:1px solid #ddd;border-radius:5px;font-size:0.95rem;">
     </div>
 
+    {% if categories %}
+    <div style="margin-bottom:1.2rem;">
+      <label for="categorie" style="display:block;font-weight:600;margin-bottom:0.3rem;">Catégorie</label>
+      <select id="categorie" name="categorie"
+              style="width:100%;padding:0.65rem;border:1px solid #ddd;border-radius:5px;font-size:0.95rem;">
+        <option value="">— Sans catégorie —</option>
+        {% for cat in categories %}
+        <option value="{{ cat.pk }}"
+          {% if produit.categorie_id == cat.pk %}selected{% endif %}>
+          {{ cat.nom }}
+        </option>
+        {% endfor %}
+      </select>
+      <small style="color:#888;font-size:0.78rem;">
+        <a href="{% url 'dashboard:gestion_categories' %}">Gérer les catégories →</a>
+      </small>
+    </div>
+    {% else %}
+    <div style="margin-bottom:1.2rem;font-size:0.85rem;color:#888;">
+      Pas encore de catégories.
+      <a href="{% url 'dashboard:gestion_categories' %}">En créer →</a>
+    </div>
+    {% endif %}
+
     <div style="margin-bottom:1.2rem;">
       <label for="description" style="display:block;font-weight:600;margin-bottom:0.3rem;">Description</label>
       <textarea id="description" name="description" rows="2"

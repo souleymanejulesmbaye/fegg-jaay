@@ -1,0 +1,57 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Catégories{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1rem;">
+  <a href="{% url 'dashboard:liste_produits' %}">&larr; Retour aux produits</a>
+</div>
+
+<h2 style="margin-bottom:1.5rem;">Catégories de produits</h2>
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-title">Ajouter une catégorie</div>
+  <form method="post" style="display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="ajouter">
+    <div style="flex:1;min-width:200px;">
+      <label style="font-size:0.85rem;font-weight:600;display:block;margin-bottom:0.3rem;">Nom *</label>
+      <input type="text" name="nom" placeholder="Ex : Alimentaire, Électronique..."
+             style="width:100%;padding:0.6rem 0.8rem;border:1px solid #ddd;border-radius:6px;" required>
+    </div>
+    <button type="submit" class="btn btn-primary">+ Ajouter</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">Catégories ({{ categories|length }})</div>
+  {% if categories %}
+  <table>
+    <thead>
+      <tr><th>Nom</th><th>Produits</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for cat in categories %}
+      <tr>
+        <td><strong>{{ cat.nom }}</strong></td>
+        <td>{{ cat.nb_produits }}</td>
+        <td>
+          <form method="post" style="display:inline;"
+                onsubmit="return confirm('Supprimer « {{ cat.nom }} » ? Les produits ne seront pas supprimés.')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="supprimer">
+            <input type="hidden" name="cat_id" value="{{ cat.pk }}">
+            <button type="submit"
+                    style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:0.85rem;">
+              Supprimer
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#888;font-size:0.9rem;">Aucune catégorie. Ajoutez-en pour organiser votre catalogue.</p>
+  {% endif %}
+</div>
+{% endblock %}

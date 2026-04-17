@@ -24,7 +24,7 @@ from django.db.models.functions import TruncDate
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 
-from boutiques.models import Boutique, Commande, LigneCommande, Produit, Client, MessageLog, ZoneLivraison
+from boutiques.models import Boutique, Categorie, Commande, LigneCommande, Produit, Client, MessageLog, ZoneLivraison
 
 logger = logging.getLogger(__name__)
 
@@ -152,10 +152,16 @@ def accueil(request):
 
     maintenant = timezone.now()
     debut_journee = maintenant.replace(hour=0, minute=0, second=0, microsecond=0)
-    debut_semaine = maintenant - timedelta(days=7)
+
+    # Période sélectionnée pour le graphique
+    periode = request.GET.get("periode", "7")
+    if periode not in ("7", "30", "90"):
+        periode = "7"
+    nb_jours = int(periode)
+    debut_periode = maintenant - timedelta(days=nb_jours)
 
     commandes_jour = Commande.objects.filter(boutique=boutique, created_at__gte=debut_journee)
-    commandes_semaine = Commande.objects.filter(boutique=boutique, created_at__gte=debut_semaine)
+    commandes_semaine = Commande.objects.filter(boutique=boutique, created_at__gte=debut_periode)
 
     # Produits en stock bas (calculé en amont pour réutilisation dans stats)
     produits_bas = [
@@ -183,21 +189,27 @@ def accueil(request):
         boutique=boutique
     ).select_related("client").order_by("-created_at")[:10]
 
-    # Ventes par jour sur 7 jours (pour le graphique)
-    ventes_7j_qs = (
-        Commande.objects.filter(boutique=boutique, created_at__gte=debut_semaine)
+    # Ventes par jour sur la période sélectionnée (pour le graphique)
+    from datetime import timedelta as td
+    ventes_qs = (
+        Commande.objects.filter(boutique=boutique, created_at__gte=debut_periode)
         .annotate(date=TruncDate("created_at"))
         .values("date")
         .annotate(nb=Count("id"), ca=Sum("montant_total"))
         .order_by("date")
     )
     # Remplir les jours manquants avec 0
-    from datetime import date, timedelta as td
     jours_labels, jours_nb, jours_ca = [], [], []
-    for i in range(7):
-        jour = (maintenant - td(days=6 - i)).date()
-        jours_labels.append(jour.strftime("%d/%m"))
-        entree = next((v for v in ventes_7j_qs if v["date"] == jour), None)
+    for i in range(nb_jours):
+        jour = (maintenant - td(days=nb_jours - 1 - i)).date()
+        # Pour 30j/90j, afficher semaines ou mois
+        if nb_jours <= 7:
+            jours_labels.append(jour.strftime("%d/%m"))
+        elif nb_jours <= 30:
+            jours_labels.append(jour.strftime("%d/%m"))
+        else:
+            jours_labels.append(jour.strftime("%d/%m"))
+        entree = next((v for v in ventes_qs if v["date"] == jour), None)
         jours_nb.append(entree["nb"] if entree else 0)
         jours_ca.append(entree["ca"] or 0 if entree else 0)
 
@@ -223,6 +235,10 @@ def accueil(request):
     onboarding_total = len(onboarding_steps)
     show_onboarding = onboarding_done < onboarding_total
 
+    # Stats globales période
+    ca_periode = sum(jours_ca)
+    nb_commandes_periode = sum(jours_nb)
+
     context = {
         "boutique": boutique,
         "stats": stats,
@@ -238,6 +254,9 @@ def accueil(request):
         "onboarding_done": onboarding_done,
         "onboarding_total": onboarding_total,
         "onboarding_pct": int(onboarding_done / onboarding_total * 100),
+        "periode": periode,
+        "ca_periode": ca_periode,
+        "nb_commandes_periode": nb_commandes_periode,
     }
     return render(request, "dashboard/accueil.html", context)
 
@@ -281,6 +300,9 @@ def creer_produit(request):
                 "mode": "creation",
             })
 
+        categorie_id = request.POST.get("categorie", "").strip()
+        categorie = Categorie.objects.filter(pk=categorie_id, boutique=boutique).first() if categorie_id else None
+
         produit = Produit.objects.create(
             boutique=boutique,
             nom=nom,
@@ -288,6 +310,7 @@ def creer_produit(request):
             stock=stock,
             stock_alerte=stock_alerte,
             description=description,
+            categorie=categorie,
         )
         if "photo" in request.FILES:
             produit.photo = request.FILES["photo"]
@@ -296,9 +319,11 @@ def creer_produit(request):
         messages.success(request, f"Produit *{nom}* créé avec succès.")
         return redirect("dashboard:liste_produits")
 
+    categories = Categorie.objects.filter(boutique=boutique)
     return render(request, "dashboard/produits/form.html", {
         "boutique": boutique,
         "mode": "creation",
+        "categories": categories,
     })
 
 
@@ -325,6 +350,8 @@ def modifier_produit(request, produit_id):
                 "mode": "modification",
             })
 
+        categorie_id = request.POST.get("categorie", "").strip()
+        produit.categorie = Categorie.objects.filter(pk=categorie_id, boutique=boutique).first() if categorie_id else None
         produit.actif = "actif" in request.POST
         if "photo" in request.FILES:
             produit.photo = request.FILES["photo"]
@@ -333,10 +360,12 @@ def modifier_produit(request, produit_id):
         messages.success(request, f"Produit *{produit.nom}* mis à jour.")
         return redirect("dashboard:liste_produits")
 
+    categories = Categorie.objects.filter(boutique=boutique)
     return render(request, "dashboard/produits/form.html", {
         "boutique": boutique,
         "produit": produit,
         "mode": "modification",
+        "categories": categories,
     })
 
 
@@ -571,6 +600,40 @@ def config_boutique(request):
         return redirect("dashboard:config_boutique")
 
     return render(request, "dashboard/config.html", {"boutique": boutique})
+
+
+# ─── Catégories produits ──────────────────────────────────────────────────────
+
+@login_required
+def gestion_categories(request):
+    """Gestion des catégories de produits."""
+    boutique = _get_boutique(request)
+    if not boutique:
+        return redirect("dashboard:accueil")
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+
+        if action == "ajouter":
+            nom = request.POST.get("nom", "").strip()
+            if nom:
+                Categorie.objects.get_or_create(boutique=boutique, nom=nom)
+                messages.success(request, f"Catégorie « {nom} » ajoutée.")
+
+        elif action == "supprimer":
+            cat_id = request.POST.get("cat_id")
+            Categorie.objects.filter(pk=cat_id, boutique=boutique).delete()
+            messages.success(request, "Catégorie supprimée.")
+
+        return redirect("dashboard:gestion_categories")
+
+    categories = Categorie.objects.filter(boutique=boutique).annotate(
+        nb_produits=Count("produits")
+    )
+    return render(request, "dashboard/produits/categories.html", {
+        "boutique": boutique,
+        "categories": categories,
+    })
 
 
 # ─── Zones de livraison ───────────────────────────────────────────────────────

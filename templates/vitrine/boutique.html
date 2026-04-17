@@ -79,6 +79,23 @@
   <div class="meta">📍 {{ boutique.ville }}</div>
 </div>
 
+{% if categories %}
+<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.2rem;">
+  <a href="{% url 'vitrine:boutique' boutique.slug %}"
+     style="padding:0.4rem 1rem;border-radius:20px;font-size:0.85rem;font-weight:600;text-decoration:none;
+            {% if not cat_active %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#333;{% endif %}">
+    Tous
+  </a>
+  {% for cat in categories %}
+  <a href="?cat={{ cat.pk }}"
+     style="padding:0.4rem 1rem;border-radius:20px;font-size:0.85rem;font-weight:600;text-decoration:none;
+            {% if cat_active == cat.pk|stringformat:'s' %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#333;{% endif %}">
+    {{ cat.nom }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% if produits %}
 <form method="post" action="{% url 'vitrine:commander' slug=boutique.slug %}" id="order-form">
   {% csrf_token %}

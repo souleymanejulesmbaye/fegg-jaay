@@ -136,10 +136,33 @@
 </div>
 {% endif %}
 
-<!-- Graphique 7 jours + Top produits -->
+<!-- Sélecteur de période -->
+<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+  <span style="font-size:0.85rem;color:#888;">Période :</span>
+  <a href="?periode=7"
+     style="padding:0.3rem 0.8rem;border-radius:20px;font-size:0.82rem;font-weight:600;text-decoration:none;
+            {% if periode == '7' %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
+    7 jours
+  </a>
+  <a href="?periode=30"
+     style="padding:0.3rem 0.8rem;border-radius:20px;font-size:0.82rem;font-weight:600;text-decoration:none;
+            {% if periode == '30' %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
+    30 jours
+  </a>
+  <a href="?periode=90"
+     style="padding:0.3rem 0.8rem;border-radius:20px;font-size:0.82rem;font-weight:600;text-decoration:none;
+            {% if periode == '90' %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
+    3 mois
+  </a>
+  <span style="margin-left:0.5rem;font-size:0.85rem;color:#888;">
+    {{ nb_commandes_periode }} commandes · {{ ca_periode|floatformat:0 }} FCFA
+  </span>
+</div>
+
+<!-- Graphique période + Top produits -->
 <div class="chart-grid">
   <div class="card">
-    <div class="card-title">Commandes — 7 derniers jours</div>
+    <div class="card-title">Commandes — {{ periode }} derniers jours</div>
     <canvas id="chartCommandes" height="120"></canvas>
   </div>
   <div class="card">

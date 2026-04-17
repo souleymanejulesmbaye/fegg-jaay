@@ -121,6 +121,27 @@ class Boutique(models.Model):
         return "\n".join(lignes)
 
 
+# ─── Categorie ────────────────────────────────────────────────────────────────
+
+class Categorie(models.Model):
+    """Catégorie de produits définie par le commerçant."""
+
+    boutique = models.ForeignKey(
+        Boutique, on_delete=models.CASCADE, related_name="categories"
+    )
+    nom = models.CharField(max_length=100)
+    ordre = models.PositiveSmallIntegerField(default=0, help_text="Ordre d'affichage (0 = premier)")
+
+    class Meta:
+        verbose_name = "Catégorie"
+        verbose_name_plural = "Catégories"
+        ordering = ["ordre", "nom"]
+        unique_together = [("boutique", "nom")]
+
+    def __str__(self):
+        return f"{self.nom} ({self.boutique.nom})"
+
+
 # ─── Produit ──────────────────────────────────────────────────────────────────
 
 class Produit(models.Model):
@@ -128,6 +149,10 @@ class Produit(models.Model):
 
     boutique = models.ForeignKey(
         Boutique, on_delete=models.CASCADE, related_name="produits"
+    )
+    categorie = models.ForeignKey(
+        "Categorie", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="produits"
     )
     nom = models.CharField(max_length=200)
     description = models.TextField(blank=True)

@@ -24,7 +24,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods, require_POST
 
-from boutiques.models import Boutique, Client, Commande, LigneCommande, OTPCode, Produit, ZoneLivraison
+from boutiques.models import Boutique, Categorie, Client, Commande, LigneCommande, OTPCode, Produit, ZoneLivraison
 
 OTP_EXPIRY_MINUTES = 10
 
@@ -40,11 +40,21 @@ def landing(request):
 def boutique(request, slug):
     """Vitrine publique d'une boutique : catalogue + formulaire de commande."""
     shop = get_object_or_404(Boutique, slug=slug, actif=True)
-    produits = Produit.objects.filter(boutique=shop, actif=True, stock__gt=0).order_by("nom")
+
+    # Filtre par catégorie
+    cat_id = request.GET.get("cat", "")
+    produits = Produit.objects.filter(boutique=shop, actif=True, stock__gt=0)
+    if cat_id:
+        produits = produits.filter(categorie_id=cat_id)
+    produits = produits.select_related("categorie").order_by("nom")
+
+    categories = Categorie.objects.filter(boutique=shop, produits__actif=True, produits__stock__gt=0).distinct()
     zones = ZoneLivraison.objects.filter(boutique=shop, actif=True).order_by("frais", "nom")
     return render(request, "vitrine/boutique.html", {
         "boutique": shop,
         "produits": produits,
+        "categories": categories,
+        "cat_active": cat_id,
         "zones": zones,
     })
 
