@@ -10,4 +10,9 @@ urlpatterns = [
     path("boutique/<slug:slug>/", views.boutique, name="boutique"),
     path("boutique/<slug:slug>/commander/", views.passer_commande, name="commander"),
     path("boutique/<slug:slug>/commande/<str:ref>/", views.confirmation, name="confirmation"),
+    # Compte client
+    path("boutique/<slug:slug>/compte/connexion/", views.connexion, name="connexion"),
+    path("boutique/<slug:slug>/compte/otp/", views.verifier_otp, name="otp"),
+    path("boutique/<slug:slug>/compte/", views.compte, name="compte"),
+    path("boutique/<slug:slug>/compte/deconnexion/", views.deconnexion, name="deconnexion"),
 ]

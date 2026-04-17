@@ -1,0 +1,75 @@
+{% extends "vitrine/base.html" %}
+
+{% block title %}Vérification — {{ boutique.nom }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-wrap { max-width: 420px; margin: 3rem auto; }
+  .auth-wrap h1 { font-size: 1.5rem; margin-bottom: 0.4rem; color: #075e54; }
+  .auth-wrap p.sub { color: #666; margin-bottom: 1.8rem; font-size: 0.95rem; }
+  .tel-badge {
+    display: inline-block; background: #e8f5e9; color: #2e7d32;
+    padding: 0.3rem 0.9rem; border-radius: 20px; font-weight: 700;
+    font-size: 0.95rem; margin-bottom: 1.5rem;
+  }
+  .otp-input {
+    width: 100%; padding: 1rem; font-size: 1.8rem;
+    letter-spacing: 0.5rem; text-align: center;
+    border: 2px solid #ddd; border-radius: 8px; outline: none;
+    transition: border-color .2s;
+  }
+  .otp-input:focus { border-color: #25d366; }
+  .erreur {
+    background: #ffe4e4; border: 1px solid #f5c6c6;
+    color: #c0392b; padding: 0.75rem 1rem; border-radius: 8px;
+    margin-bottom: 1rem; font-size: 0.9rem;
+  }
+  .btn-full { width: 100%; padding: 0.85rem; font-size: 1rem; margin-top: 1.2rem; }
+  .back-link {
+    display: block; text-align: center; margin-top: 1rem;
+    font-size: 0.85rem; color: #888;
+  }
+  .expiry { font-size: 0.8rem; color: #aaa; text-align: center; margin-top: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block nav_extra %}
+<a href="{% url 'vitrine:boutique' boutique.slug %}">{{ boutique.nom }}</a>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="card">
+    <h1>Code de vérification</h1>
+    <p class="sub">Un code a été envoyé par WhatsApp à :</p>
+    <div class="tel-badge">+{{ telephone }}</div>
+
+    {% if erreur %}
+    <div class="erreur">{{ erreur }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <input
+        type="text"
+        name="code"
+        class="otp-input"
+        placeholder="000000"
+        maxlength="6"
+        inputmode="numeric"
+        pattern="[0-9]{6}"
+        autofocus
+        required
+      >
+      <p class="expiry">Ce code expire dans 10 minutes.</p>
+      <button type="submit" class="btn btn-primary btn-full">
+        Valider
+      </button>
+    </form>
+
+    <a href="{% url 'vitrine:connexion' boutique.slug %}" class="back-link">
+      Changer de numéro
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -300,6 +300,32 @@ class LigneCommande(models.Model):
         return f"{self.sous_total:,} FCFA".replace(",", " ")
 
 
+# ─── OTPCode ──────────────────────────────────────────────────────────────────
+
+class OTPCode(models.Model):
+    """Code OTP à 6 chiffres envoyé par WhatsApp pour authentifier un client web."""
+
+    client = models.ForeignKey(
+        Client, on_delete=models.CASCADE, related_name="otps"
+    )
+    code = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
+    utilise = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Code OTP"
+        verbose_name_plural = "Codes OTP"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"OTP {self.client.telephone} — {'utilisé' if self.utilise else 'actif'}"
+
+    @property
+    def est_valide(self) -> bool:
+        return not self.utilise and timezone.now() < self.expires_at
+
+
 # ─── MessageLog ───────────────────────────────────────────────────────────────
 
 class MessageLog(models.Model):

@@ -1,6 +1,10 @@
 {% extends "vitrine/base.html" %}
 {% block title %}{{ boutique.nom }} — Fëgg Jaay{% endblock %}
 
+{% block nav_extra %}
+<a href="{% url 'vitrine:compte' boutique.slug %}">Mon compte</a>
+{% endblock %}
+
 {% block extra_css %}
 <style>
   .boutique-header {

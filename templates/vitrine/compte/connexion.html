@@ -1,0 +1,81 @@
+{% extends "vitrine/base.html" %}
+
+{% block title %}Connexion — {{ boutique.nom }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-wrap {
+    max-width: 420px; margin: 3rem auto;
+  }
+  .auth-wrap h1 {
+    font-size: 1.5rem; margin-bottom: 0.4rem; color: #075e54;
+  }
+  .auth-wrap p.sub {
+    color: #666; margin-bottom: 1.8rem; font-size: 0.95rem;
+  }
+  .form-group { margin-bottom: 1.2rem; }
+  .form-group label {
+    display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;
+  }
+  .form-group input {
+    width: 100%; padding: 0.75rem 1rem; border: 2px solid #ddd;
+    border-radius: 8px; font-size: 1rem; outline: none;
+    transition: border-color .2s;
+  }
+  .form-group input:focus { border-color: #25d366; }
+  .erreur {
+    background: #ffe4e4; border: 1px solid #f5c6c6;
+    color: #c0392b; padding: 0.75rem 1rem; border-radius: 8px;
+    margin-bottom: 1rem; font-size: 0.9rem;
+  }
+  .btn-full { width: 100%; padding: 0.85rem; font-size: 1rem; }
+  .hint {
+    margin-top: 1rem; text-align: center;
+    font-size: 0.85rem; color: #888;
+  }
+  .wa-icon { font-size: 1.2rem; vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block nav_extra %}
+<a href="{% url 'vitrine:boutique' boutique.slug %}">{{ boutique.nom }}</a>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="card">
+    <h1>Connexion</h1>
+    <p class="sub">
+      <span class="wa-icon">💬</span>
+      Entrez votre numéro WhatsApp. Vous recevrez un code de confirmation.
+    </p>
+
+    {% if erreur %}
+    <div class="erreur">{{ erreur }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="telephone">Numéro WhatsApp</label>
+        <input
+          type="tel"
+          id="telephone"
+          name="telephone"
+          placeholder="+221 77 123 45 67"
+          autofocus
+          required
+        >
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">
+        Recevoir mon code
+      </button>
+    </form>
+
+    <p class="hint">
+      Pas encore client ?
+      <a href="{% url 'vitrine:boutique' boutique.slug %}">Voir le catalogue</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

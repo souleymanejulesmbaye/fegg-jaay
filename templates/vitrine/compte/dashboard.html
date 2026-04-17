@@ -1,0 +1,115 @@
+{% extends "vitrine/base.html" %}
+
+{% block title %}Mon compte — {{ boutique.nom }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .compte-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .compte-header h1 { font-size: 1.4rem; color: #075e54; }
+  .compte-header .tel { color: #888; font-size: 0.9rem; }
+
+  .commande-card { margin-bottom: 1.2rem; }
+  .commande-card .cmd-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;
+  }
+  .commande-card .cmd-ref { font-weight: 700; color: #333; }
+  .commande-card .cmd-date { font-size: 0.8rem; color: #aaa; }
+
+  .lignes { list-style: none; padding: 0; margin: 0 0 0.8rem; }
+  .lignes li {
+    display: flex; justify-content: space-between;
+    padding: 0.35rem 0; border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+  }
+  .lignes li:last-child { border-bottom: none; }
+  .cmd-total {
+    text-align: right; font-weight: 700; color: #075e54;
+    font-size: 1rem;
+  }
+
+  .badge-attente { background: #fff3cd; color: #856404; }
+  .badge-payee { background: #d4edda; color: #155724; }
+  .badge-en_preparation { background: #cce5ff; color: #004085; }
+  .badge-livree { background: #d4edda; color: #155724; }
+  .badge-annulee { background: #f8d7da; color: #721c24; }
+
+  .empty-state {
+    text-align: center; padding: 3rem 1rem; color: #aaa;
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+
+  .btn-sm { padding: 0.45rem 1rem; font-size: 0.85rem; }
+  .btn-danger { background: #dc3545; color: white; }
+  .btn-danger:hover { background: #c82333; text-decoration: none; }
+</style>
+{% endblock %}
+
+{% block nav_extra %}
+<a href="{% url 'vitrine:boutique' boutique.slug %}">{{ boutique.nom }}</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="compte-header">
+  <div>
+    <h1>Bonjour{% if client.prenom %}, {{ client.prenom }}{% endif %} 👋</h1>
+    <div class="tel">+{{ client.telephone }}</div>
+  </div>
+  <div style="display:flex;gap:0.8rem;align-items:center;">
+    <a href="{% url 'vitrine:boutique' boutique.slug %}" class="btn btn-outline btn-sm">
+      Commander
+    </a>
+    <form method="post" action="{% url 'vitrine:deconnexion' boutique.slug %}" style="margin:0;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger btn-sm">Déconnexion</button>
+    </form>
+  </div>
+</div>
+
+<h2 style="font-size:1.1rem;margin-bottom:1rem;color:#555;">Mes commandes ({{ commandes|length }})</h2>
+
+{% if commandes %}
+  {% for commande in commandes %}
+  <div class="card commande-card">
+    <div class="cmd-header">
+      <div>
+        <span class="cmd-ref">{{ commande.numero_ref }}</span>
+        <span class="cmd-date">— {{ commande.created_at|date:"d/m/Y H:i" }}</span>
+      </div>
+      <span class="badge badge-{{ commande.statut }}">{{ commande.get_statut_display }}</span>
+    </div>
+
+    <ul class="lignes">
+      {% for ligne in commande.lignes.all %}
+      <li>
+        <span>{{ ligne.quantite }}x {{ ligne.produit.nom }}</span>
+        <span>{{ ligne.sous_total_formate }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div class="cmd-total">Total : {{ commande.montant_formate }}</div>
+
+    {% if commande.statut == "attente_paiement" %}
+    <div style="margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid #f0f0f0;font-size:0.85rem;color:#856404;">
+      En attente de paiement — payez via Wave ou Orange Money et envoyez la référence de transaction.
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+{% else %}
+  <div class="empty-state">
+    <div class="icon">🛒</div>
+    <p>Vous n'avez pas encore de commande.</p>
+    <a href="{% url 'vitrine:boutique' boutique.slug %}" class="btn btn-primary" style="margin-top:1rem;">
+      Voir le catalogue
+    </a>
+  </div>
+{% endif %}
+
+{% endblock %}

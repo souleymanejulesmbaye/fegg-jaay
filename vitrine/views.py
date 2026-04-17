@@ -6,15 +6,27 @@ Pages accessibles sans connexion :
   /boutique/<slug>/          → catalogue produits d'une boutique
   /boutique/<slug>/commander/ → passer une commande web
   /boutique/<slug>/commande/<ref>/ → confirmation de commande
+
+Pages compte client (OTP WhatsApp) :
+  /boutique/<slug>/compte/connexion/ → saisir son numéro → reçoit OTP
+  /boutique/<slug>/compte/otp/       → saisir le code OTP
+  /boutique/<slug>/compte/           → tableau de bord client (commandes)
+  /boutique/<slug>/compte/deconnexion/ → se déconnecter
 """
 
 import logging
+import random
+import string
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_http_methods, require_POST
 
-from boutiques.models import Boutique, Client, Commande, LigneCommande, Produit
+from boutiques.models import Boutique, Client, Commande, LigneCommande, OTPCode, Produit
+
+OTP_EXPIRY_MINUTES = 10
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +138,159 @@ def passer_commande(request, slug):
 
     return redirect("vitrine:confirmation", slug=slug, ref=commande.numero_ref)
 
+
+# ─── Helpers compte client ────────────────────────────────────────────────────
+
+def _session_key(boutique):
+    """Clé de session pour stocker l'id du client connecté (par boutique)."""
+    return f"client_id_{boutique.pk}"
+
+
+def _otp_tel_key(boutique):
+    """Clé de session temporaire : téléphone en cours de vérification OTP."""
+    return f"otp_tel_{boutique.pk}"
+
+
+def _get_client_connecte(request, boutique):
+    """Retourne le Client connecté pour cette boutique, ou None."""
+    client_id = request.session.get(_session_key(boutique))
+    if not client_id:
+        return None
+    try:
+        return Client.objects.get(pk=client_id, boutique=boutique)
+    except Client.DoesNotExist:
+        return None
+
+
+def _generer_otp() -> str:
+    return "".join(random.choices(string.digits, k=6))
+
+
+# ─── Vues compte client ───────────────────────────────────────────────────────
+
+def connexion(request, slug):
+    """Étape 1 : le client saisit son numéro WhatsApp → reçoit un OTP."""
+    shop = get_object_or_404(Boutique, slug=slug, actif=True)
+
+    # Déjà connecté → dashboard
+    if _get_client_connecte(request, shop):
+        return redirect("vitrine:compte", slug=slug)
+
+    erreur = None
+
+    if request.method == "POST":
+        telephone_raw = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "")
+        if not telephone_raw:
+            erreur = "Veuillez entrer votre numéro WhatsApp."
+        else:
+            if not telephone_raw.startswith("+"):
+                telephone_raw = "+" + telephone_raw
+            telephone_stocke = telephone_raw.lstrip("+")
+
+            client, _ = Client.objects.get_or_create(
+                boutique=shop,
+                telephone=telephone_stocke,
+                defaults={"prenom": "", "langue_preferee": "fr"},
+            )
+
+            # Invalider les anciens OTP non utilisés de ce client
+            OTPCode.objects.filter(client=client, utilise=False).update(utilise=True)
+
+            code = _generer_otp()
+            OTPCode.objects.create(
+                client=client,
+                code=code,
+                expires_at=timezone.now() + timezone.timedelta(minutes=OTP_EXPIRY_MINUTES),
+            )
+
+            try:
+                from whatsapp.sender import envoyer_otp
+                envoyer_otp(shop, telephone_stocke, code)
+            except Exception:
+                logger.warning("Impossible d'envoyer l'OTP à %s", telephone_stocke)
+
+            # Stocker le téléphone en session pour la page OTP
+            request.session[_otp_tel_key(shop)] = telephone_stocke
+            return redirect("vitrine:otp", slug=slug)
+
+    return render(request, "vitrine/compte/connexion.html", {
+        "boutique": shop,
+        "erreur": erreur,
+    })
+
+
+def verifier_otp(request, slug):
+    """Étape 2 : le client saisit le code OTP reçu par WhatsApp."""
+    shop = get_object_or_404(Boutique, slug=slug, actif=True)
+
+    if _get_client_connecte(request, shop):
+        return redirect("vitrine:compte", slug=slug)
+
+    telephone = request.session.get(_otp_tel_key(shop))
+    if not telephone:
+        return redirect("vitrine:connexion", slug=slug)
+
+    erreur = None
+
+    if request.method == "POST":
+        code_saisi = request.POST.get("code", "").strip()
+        try:
+            client = Client.objects.get(boutique=shop, telephone=telephone)
+            otp = OTPCode.objects.filter(
+                client=client,
+                code=code_saisi,
+                utilise=False,
+            ).order_by("-created_at").first()
+
+            if otp and otp.est_valide:
+                otp.utilise = True
+                otp.save(update_fields=["utilise"])
+                request.session[_session_key(shop)] = client.pk
+                del request.session[_otp_tel_key(shop)]
+                return redirect("vitrine:compte", slug=slug)
+            elif otp and not otp.est_valide:
+                erreur = "Ce code a expiré. Recommencez."
+            else:
+                erreur = "Code incorrect. Vérifiez votre WhatsApp."
+        except Client.DoesNotExist:
+            erreur = "Numéro introuvable."
+
+    return render(request, "vitrine/compte/otp.html", {
+        "boutique": shop,
+        "telephone": telephone,
+        "erreur": erreur,
+    })
+
+
+def compte(request, slug):
+    """Tableau de bord client : historique des commandes."""
+    shop = get_object_or_404(Boutique, slug=slug, actif=True)
+    client = _get_client_connecte(request, shop)
+    if not client:
+        return redirect("vitrine:connexion", slug=slug)
+
+    commandes = (
+        Commande.objects.filter(boutique=shop, client=client)
+        .prefetch_related("lignes__produit")
+        .order_by("-created_at")
+    )
+    return render(request, "vitrine/compte/dashboard.html", {
+        "boutique": shop,
+        "client": client,
+        "commandes": commandes,
+    })
+
+
+@require_POST
+def deconnexion(request, slug):
+    """Déconnecte le client (supprime sa session pour cette boutique)."""
+    shop = get_object_or_404(Boutique, slug=slug, actif=True)
+    request.session.pop(_session_key(shop), None)
+    request.session.pop(_otp_tel_key(shop), None)
+    return redirect("vitrine:boutique", slug=slug)
+
+
+# ─── Confirmation commande ────────────────────────────────────────────────────
 
 def confirmation(request, slug, ref):
     """Page de confirmation après commande."""

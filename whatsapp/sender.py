@@ -155,6 +155,19 @@ def notifier_paiement_recu(boutique: Boutique, commande) -> bool:
     return envoyer_notification_commercant(boutique, message)
 
 
+def envoyer_otp(boutique: Boutique, telephone: str, code: str) -> bool:
+    """
+    Envoie un code OTP à 6 chiffres au client via WhatsApp.
+    Utilisé pour l'authentification sur la vitrine web.
+    """
+    message = (
+        f"🔐 *Votre code de connexion {boutique.nom}*\n\n"
+        f"Code : *{code}*\n\n"
+        f"Ce code expire dans 10 minutes. Ne le partagez pas."
+    )
+    return envoyer_message_texte(boutique=boutique, telephone_destinataire=telephone, texte=message)
+
+
 def notifier_alerte_stock(boutique: Boutique, produit) -> bool:
     """Alerte le commerçant quand le stock d'un produit passe sous le seuil."""
     message = (

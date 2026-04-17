@@ -68,6 +68,7 @@
 <div class="header">
   <a href="{% url 'vitrine:landing' %}" class="brand">🛍 Fëgg<span>Jaay</span></a>
   <div class="nav-links">
+    {% block nav_extra %}{% endblock %}
     <a href="{% url 'dashboard:login' %}">Espace commerçant</a>
   </div>
 </div>
