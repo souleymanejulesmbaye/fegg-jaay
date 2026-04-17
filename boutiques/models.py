@@ -6,6 +6,7 @@ clés WhatsApp API, produits, clients et commandes.
 """
 
 import uuid
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
@@ -24,6 +25,16 @@ class Boutique(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nom = models.CharField(max_length=200, verbose_name="Nom de la boutique")
 
+    # Propriétaire (compte Django lié à cette boutique)
+    proprietaire = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="boutique",
+        verbose_name="Compte propriétaire",
+    )
+
     # WhatsApp Business API (360dialog) — propre à chaque boutique
     telephone_wa = models.CharField(
         max_length=20,
@@ -32,10 +43,12 @@ class Boutique(models.Model):
     )
     wa_phone_id = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name="WhatsApp Phone ID (360dialog)",
     )
     wa_token = models.CharField(
         max_length=500,
+        blank=True,
         verbose_name="Token API WhatsApp (360dialog)",
     )
 

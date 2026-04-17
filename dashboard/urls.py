@@ -7,6 +7,7 @@ app_name = "dashboard"
 
 urlpatterns = [
     # Auth
+    path("inscription/", views.inscription, name="inscription"),
     path("login/", views.vue_login, name="login"),
     path("logout/", views.vue_logout, name="logout"),
 

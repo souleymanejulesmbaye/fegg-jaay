@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Créer ma boutique — Fëgg Jaay</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #075e54;
+           display: flex; justify-content: center; align-items: flex-start;
+           min-height: 100vh; padding: 2rem 1rem; }
+    .card {
+      background: white; border-radius: 12px; padding: 2.5rem;
+      width: 100%; max-width: 440px; box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    }
+    h1 { text-align: center; margin-bottom: 0.25rem; font-size: 1.5rem; }
+    .subtitle { text-align: center; color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
+    .section-title {
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: #aaa; margin: 1.5rem 0 0.8rem;
+      border-bottom: 1px solid #eee; padding-bottom: 0.4rem;
+    }
+    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+    input, select {
+      width: 100%; padding: 0.65rem 0.9rem; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 0.95rem; margin-bottom: 0.3rem;
+    }
+    input:focus, select:focus { outline: none; border-color: #25d366; }
+    .field { margin-bottom: 1rem; }
+    .field-error { color: #c0392b; font-size: 0.8rem; margin-bottom: 0.5rem; }
+    button {
+      width: 100%; padding: 0.8rem; background: #25d366; color: white;
+      border: none; border-radius: 6px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; margin-top: 0.5rem;
+    }
+    button:hover { background: #1ebe5a; }
+    .login-link {
+      text-align: center; margin-top: 1.2rem;
+      font-size: 0.85rem; color: #888;
+    }
+    .login-link a { color: #25d366; font-weight: 600; }
+    .hint { font-size: 0.78rem; color: #aaa; margin-bottom: 0.8rem; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>🛍 Fëgg Jaay</h1>
+  <p class="subtitle">Créez votre boutique en ligne gratuitement</p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="section-title">Votre boutique</div>
+
+    <div class="field">
+      <label for="nom_boutique">Nom de la boutique *</label>
+      <input type="text" id="nom_boutique" name="nom_boutique"
+             placeholder="Ex : Boutique Aminata" autofocus
+             value="{{ post.nom_boutique|default:'' }}" required>
+      {% if erreurs.nom_boutique %}<div class="field-error">{{ erreurs.nom_boutique }}</div>{% endif %}
+    </div>
+
+    <div class="field">
+      <label for="telephone">Numéro WhatsApp *</label>
+      <input type="tel" id="telephone" name="telephone"
+             placeholder="+221 77 123 45 67"
+             value="{{ post.telephone|default:'' }}" required>
+      {% if erreurs.telephone %}<div class="field-error">{{ erreurs.telephone }}</div>{% endif %}
+    </div>
+
+    <div class="field">
+      <label for="ville">Ville</label>
+      <select id="ville" name="ville">
+        {% for v in "Dakar,Thiès,Saint-Louis,Ziguinchor,Kaolack,Diourbel,Touba,Mbour,Rufisque,Louga"|split:"," %}
+        <option value="{{ v }}" {% if post.ville == v %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="section-title">Votre compte</div>
+
+    <div class="field">
+      <label for="username">Nom d'utilisateur *</label>
+      <input type="text" id="username" name="username"
+             placeholder="aminata_shop"
+             value="{{ post.username|default:'' }}" required>
+      {% if erreurs.username %}<div class="field-error">{{ erreurs.username }}</div>{% endif %}
+    </div>
+
+    <div class="field">
+      <label for="password1">Mot de passe *</label>
+      <input type="password" id="password1" name="password1"
+             placeholder="6 caractères minimum" required>
+      {% if erreurs.password1 %}<div class="field-error">{{ erreurs.password1 }}</div>{% endif %}
+    </div>
+
+    <div class="field">
+      <label for="password2">Confirmer le mot de passe *</label>
+      <input type="password" id="password2" name="password2" required>
+      {% if erreurs.password2 %}<div class="field-error">{{ erreurs.password2 }}</div>{% endif %}
+    </div>
+
+    <button type="submit">Créer ma boutique</button>
+  </form>
+
+  <p class="login-link">
+    Déjà un compte ? <a href="{% url 'dashboard:login' %}">Se connecter</a>
+  </p>
+</div>
+</body>
+</html>

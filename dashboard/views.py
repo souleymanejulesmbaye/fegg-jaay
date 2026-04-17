@@ -21,12 +21,82 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from django.db.models.functions import TruncDate
 
+from django.contrib.auth.models import User
+from django.utils.text import slugify
+
 from boutiques.models import Boutique, Commande, LigneCommande, Produit, Client, MessageLog
 
 logger = logging.getLogger(__name__)
 
 
 # ─── Authentification ─────────────────────────────────────────────────────────
+
+def inscription(request):
+    """Inscription d'un nouveau commerçant — crée User + Boutique liés."""
+    if request.user.is_authenticated:
+        return redirect("dashboard:accueil")
+
+    erreurs = {}
+
+    if request.method == "POST":
+        nom_boutique = request.POST.get("nom_boutique", "").strip()
+        telephone = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "")
+        ville = request.POST.get("ville", "Dakar").strip()
+        username = request.POST.get("username", "").strip()
+        password1 = request.POST.get("password1", "")
+        password2 = request.POST.get("password2", "")
+
+        # Validations
+        if not nom_boutique:
+            erreurs["nom_boutique"] = "Nom de boutique requis."
+        if not telephone:
+            erreurs["telephone"] = "Numéro WhatsApp requis."
+        elif Boutique.objects.filter(telephone_wa=telephone.lstrip("+")).exists():
+            erreurs["telephone"] = "Ce numéro est déjà utilisé."
+        if not username:
+            erreurs["username"] = "Nom d'utilisateur requis."
+        elif User.objects.filter(username=username).exists():
+            erreurs["username"] = "Ce nom d'utilisateur est déjà pris."
+        if len(password1) < 6:
+            erreurs["password1"] = "Le mot de passe doit faire au moins 6 caractères."
+        elif password1 != password2:
+            erreurs["password2"] = "Les mots de passe ne correspondent pas."
+
+        if not erreurs:
+            # Générer un slug unique
+            slug_base = slugify(nom_boutique) or username
+            slug = slug_base
+            compteur = 1
+            while Boutique.objects.filter(slug=slug).exists():
+                slug = f"{slug_base}-{compteur}"
+                compteur += 1
+
+            tel_normalise = telephone.lstrip("+")
+
+            from django.db import transaction as db_transaction
+            with db_transaction.atomic():
+                user = User.objects.create_user(
+                    username=username,
+                    password=password1,
+                    is_staff=True,
+                )
+                Boutique.objects.create(
+                    proprietaire=user,
+                    nom=nom_boutique,
+                    telephone_wa=tel_normalise,
+                    proprietaire_tel=tel_normalise,
+                    ville=ville,
+                    slug=slug,
+                    wa_phone_id="",
+                    wa_token="",
+                )
+
+            login(request, user)
+            messages.success(request, f"Bienvenue ! Votre boutique *{nom_boutique}* est créée.")
+            return redirect("dashboard:accueil")
+
+    return render(request, "dashboard/inscription.html", {"erreurs": erreurs, "post": request.POST})
+
 
 def vue_login(request):
     if request.user.is_authenticated:
@@ -53,20 +123,22 @@ def vue_logout(request):
 # ─── Helper : récupérer la boutique de l'utilisateur connecté ─────────────────
 
 def _get_boutique(request):
-    """
-    Retourne la boutique associée à l'utilisateur connecté.
-    Pour le MVP, on utilise le username = telephone_wa ou un profil.
-    En production, utiliser un modèle Profil lié à User.
-    """
-    # Cherche une boutique dont le proprietaire_tel correspond au username
+    """Retourne la boutique associée à l'utilisateur connecté."""
+    # 1. Liaison directe via FK proprietaire
+    try:
+        return request.user.boutique
+    except Boutique.DoesNotExist:
+        pass
+    # 2. Fallback legacy : username = proprietaire_tel
     boutique = Boutique.objects.filter(
         proprietaire_tel=request.user.username, actif=True
     ).first()
-    if not boutique:
-        # Fallback : si admin, retourne la première boutique
-        if request.user.is_staff:
-            boutique = Boutique.objects.filter(actif=True).first()
-    return boutique
+    if boutique:
+        return boutique
+    # 3. Fallback admin : première boutique active
+    if request.user.is_staff:
+        return Boutique.objects.filter(actif=True).first()
+    return None
 
 
 # ─── Accueil / Stats du jour ──────────────────────────────────────────────────

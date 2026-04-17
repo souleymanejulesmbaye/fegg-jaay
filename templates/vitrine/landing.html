@@ -51,6 +51,9 @@
     {% if boutiques %}
     <a href="#boutiques" class="btn btn-primary">Voir les boutiques</a>
     {% endif %}
+    <a href="{% url 'dashboard:inscription' %}" class="btn btn-primary" style="background:white;color:#075e54;">
+      Créer ma boutique
+    </a>
     <a href="{% url 'dashboard:login' %}" class="btn btn-outline" style="border-color:white;color:white;">
       Espace commerçant
     </a>
