@@ -5,7 +5,7 @@
 
 set -e
 
-APP_DIR="/app"
+APP_DIR="/opt/fegg-jaay"
 cd "$APP_DIR"
 
 echo "[deploy] $(date) — Début du déploiement"
