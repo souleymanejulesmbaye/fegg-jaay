@@ -10,9 +10,9 @@
   </div>
 </div>
 
-<div class="card">
+<div class="card" style="overflow-x:auto;">
   {% if produits %}
-  <table>
+  <table style="min-width:600px;">
     <thead>
       <tr>
         <th>Produit</th>
@@ -26,7 +26,8 @@
     <tbody>
       {% for p in produits %}
       <tr>
-        <td style="display:flex;align-items:center;gap:0.7rem;">
+        <td>
+          <div style="display:flex;align-items:center;gap:0.7rem;">
           {% if p.photo %}
           <img src="{{ p.photo.url }}" alt="{{ p.nom }}"
                style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;">
@@ -41,7 +42,7 @@
             {% if p.description %}
             <br><small style="color:#888;">{{ p.description|truncatechars:50 }}</small>
             {% endif %}
-          </div>
+          </div></div>
         </td>
         <td>{{ p.prix_formate }}</td>
         <td>
