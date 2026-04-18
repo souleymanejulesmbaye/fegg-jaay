@@ -5,10 +5,13 @@ Multi-tenant : chaque Boutique est un tenant isolé avec ses propres
 clés WhatsApp API, produits, clients et commandes.
 """
 
+import io
 import uuid
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils import timezone
+from PIL import Image
 
 
 # ─── Boutique (tenant principal) ─────────────────────────────────────────────
@@ -194,6 +197,27 @@ class Produit(models.Model):
 
     def __str__(self):
         return f"{self.nom} — {self.prix:,} FCFA (boutique: {self.boutique.nom})"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.photo:
+            self._redimensionner_photo()
+
+    def _redimensionner_photo(self, max_px: int = 800):
+        try:
+            img = Image.open(self.photo.path)
+            if img.width > max_px or img.height > max_px:
+                img.thumbnail((max_px, max_px), Image.LANCZOS)
+                buf = io.BytesIO()
+                fmt = "JPEG" if img.mode in ("RGB", "L") else "PNG"
+                if img.mode == "RGBA":
+                    img = img.convert("RGB")
+                    fmt = "JPEG"
+                img.save(buf, format=fmt, quality=85, optimize=True)
+                self.photo.save(self.photo.name, ContentFile(buf.getvalue()), save=False)
+                super().save(update_fields=["photo"])
+        except Exception:
+            pass  # ne jamais bloquer la sauvegarde du produit
 
     @property
     def prix_formate(self) -> str:
