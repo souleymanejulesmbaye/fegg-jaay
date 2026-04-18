@@ -147,7 +147,7 @@
         <div class="marche-card-boutique">
           🏪 <span>{{ p.boutique.nom }}</span> · {{ p.boutique.ville }}
         </div>
-        <a href="{% url 'vitrine:boutique' slug=p.boutique.slug %}" class="btn-commander-card">
+        <a href="{% url 'vitrine:boutique' slug=p.boutique.slug %}?q={{ p.nom|urlencode }}" class="btn-commander-card">
           Commander →
         </a>
       </div>
