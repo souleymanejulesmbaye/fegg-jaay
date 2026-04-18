@@ -1,0 +1,46 @@
+services:
+
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: fegg_jaay
+      POSTGRES_USER: fegg_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+
+  web:
+    build: .
+    restart: always
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://fegg_user:${DB_PASSWORD}@db:5432/fegg_jaay
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - staticfiles:/app/staticfiles
+
+  worker:
+    build: .
+    restart: always
+    command: celery -A fegg_jaay worker -l info
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://fegg_user:${DB_PASSWORD}@db:5432/fegg_jaay
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+  staticfiles:
