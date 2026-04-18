@@ -8,6 +8,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("wa/", include("whatsapp.urls")),
+    path("whatsapp/", include("whatsapp.urls")),
     path("dashboard/", include("dashboard.urls")),
     path("", include("vitrine.urls")),
 ]
