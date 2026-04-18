@@ -8,7 +8,7 @@
 {% block extra_css %}
 <style>
   .boutique-header {
-    background: linear-gradient(135deg, #075e54, #128c7e);
+    background: linear-gradient(135deg, #4A1D96, #128c7e);
     color: white; border-radius: 12px; padding: 2rem;
     margin-bottom: 2rem; text-align: center;
   }
@@ -36,7 +36,7 @@
   }
   .produit-card-body { padding: 1rem; }
   .produit-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
-  .produit-card .prix { color: #075e54; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .produit-card .prix { color: #4A1D96; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
   .produit-card .stock { font-size: 0.8rem; color: #888; margin-bottom: 0.8rem; }
   .qte-control {
     display: flex; align-items: center; gap: 0.5rem;
@@ -45,9 +45,9 @@
     width: 30px; height: 30px; border-radius: 50%; border: none;
     background: #f0f2f5; font-size: 1.1rem; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 700; color: #075e54;
+    font-weight: 700; color: #4A1D96;
   }
-  .qte-control button:hover { background: #25d366; color: white; }
+  .qte-control button:hover { background: #F59E0B; color: white; }
   .qte-control input {
     width: 45px; text-align: center; border: 1px solid #ddd;
     border-radius: 6px; padding: 0.3rem; font-size: 0.95rem;
@@ -55,7 +55,7 @@
 
   .form-section { background: white; border-radius: 12px; padding: 1.5rem;
     box-shadow: 0 2px 8px rgba(0,0,0,.07); }
-  .form-section h2 { font-size: 1.2rem; margin-bottom: 1.2rem; color: #075e54; }
+  .form-section h2 { font-size: 1.2rem; margin-bottom: 1.2rem; color: #4A1D96; }
   .form-group { margin-bottom: 1rem; }
   .form-group label { display: block; font-size: 0.85rem; font-weight: 600;
     color: #555; margin-bottom: 0.3rem; }
@@ -64,17 +64,17 @@
     border-radius: 8px; font-size: 0.95rem;
   }
   .form-group input:focus, .form-group textarea:focus {
-    outline: none; border-color: #25d366;
+    outline: none; border-color: #F59E0B;
     box-shadow: 0 0 0 3px rgba(37,211,102,.15);
   }
 
   #panier-resume {
-    background: #f0fff4; border: 1px solid #25d366;
+    background: #f0fff4; border: 1px solid #F59E0B;
     border-radius: 8px; padding: 1rem; margin-bottom: 1.2rem;
     font-size: 0.9rem; display: none;
   }
-  #panier-resume h3 { font-size: 0.95rem; margin-bottom: 0.5rem; color: #075e54; }
-  #panier-total { font-weight: 700; margin-top: 0.5rem; color: #075e54; }
+  #panier-resume h3 { font-size: 0.95rem; margin-bottom: 0.5rem; color: #4A1D96; }
+  #panier-total { font-weight: 700; margin-top: 0.5rem; color: #4A1D96; }
 
   .wa-info {
     background: #e8f5e9; border-radius: 8px; padding: 0.9rem 1rem;
@@ -99,7 +99,7 @@
     <input type="search" name="q" value="{{ q }}" placeholder="{{ t.search_placeholder }}"
            style="flex:1;padding:0.55rem 1rem;border:1px solid #ddd;border-radius:20px;font-size:0.9rem;outline:none;">
     <button type="submit"
-            style="padding:0.55rem 1.1rem;background:#075e54;color:white;border:none;border-radius:20px;font-size:0.9rem;cursor:pointer;font-weight:600;">
+            style="padding:0.55rem 1.1rem;background:#4A1D96;color:white;border:none;border-radius:20px;font-size:0.9rem;cursor:pointer;font-weight:600;">
       🔍
     </button>
     {% if q %}
@@ -113,13 +113,13 @@
 <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.2rem;">
   <a href="{% url 'vitrine:boutique' boutique.slug %}"
      style="padding:0.4rem 1rem;border-radius:20px;font-size:0.85rem;font-weight:600;text-decoration:none;
-            {% if not cat_active %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#333;{% endif %}">
+            {% if not cat_active %}background:#4A1D96;color:white;{% else %}background:#f0f2f5;color:#333;{% endif %}">
     Tous
   </a>
   {% for cat in categories %}
   <a href="?cat={{ cat.pk }}"
      style="padding:0.4rem 1rem;border-radius:20px;font-size:0.85rem;font-weight:600;text-decoration:none;
-            {% if cat_active == cat.pk|stringformat:'s' %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#333;{% endif %}">
+            {% if cat_active == cat.pk|stringformat:'s' %}background:#4A1D96;color:white;{% else %}background:#f0f2f5;color:#333;{% endif %}">
     {{ cat.nom }}
   </a>
   {% endfor %}
@@ -130,7 +130,7 @@
 <form method="post" action="{% url 'vitrine:commander' slug=boutique.slug %}" id="order-form">
   {% csrf_token %}
 
-  <h2 style="font-size:1.2rem;margin-bottom:1rem;color:#075e54;">{{ t.nos_produits }}</h2>
+  <h2 style="font-size:1.2rem;margin-bottom:1rem;color:#4A1D96;">{{ t.nos_produits }}</h2>
   <div class="produits-grid">
     {% for produit in produits %}
     <div class="produit-card">
@@ -207,7 +207,7 @@
 <div class="card" style="text-align:center;padding:3rem;">
   {% if q %}
   <p style="font-size:1.1rem;color:#888;">{{ t.aucun_resultat_prefix }} « {{ q }} ».</p>
-  <a href="?{% if cat_active %}cat={{ cat_active }}{% endif %}" style="color:#075e54;font-size:0.9rem;">{{ t.voir_tous }}</a>
+  <a href="?{% if cat_active %}cat={{ cat_active }}{% endif %}" style="color:#4A1D96;font-size:0.9rem;">{{ t.voir_tous }}</a>
   {% else %}
   <p style="font-size:1.1rem;color:#888;">{{ t.aucun_produit }}</p>
   {% endif %}

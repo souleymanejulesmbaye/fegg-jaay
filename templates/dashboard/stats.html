@@ -6,7 +6,7 @@
 <style>
   .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
   .kpi { background: white; border-radius: 8px; padding: 1.2rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); text-align: center; }
-  .kpi-number { font-size: 1.8rem; font-weight: 700; color: #075e54; }
+  .kpi-number { font-size: 1.8rem; font-weight: 700; color: #4A1D96; }
   .kpi-label { font-size: 0.78rem; color: #777; margin-top: 0.2rem; }
   .kpi-sub { font-size: 0.75rem; margin-top: 0.2rem; }
   .evolution-pos { color: #28a745; }
@@ -142,11 +142,11 @@ new Chart(document.getElementById("chartCA").getContext("2d"), {
     datasets: [{
       label: "CA (FCFA)",
       data: moisCa,
-      borderColor: "#075e54",
+      borderColor: "#4A1D96",
       backgroundColor: "rgba(7,94,84,.08)",
       tension: 0.4,
       fill: true,
-      pointBackgroundColor: "#075e54",
+      pointBackgroundColor: "#4A1D96",
     }]
   },
   options: {
@@ -164,8 +164,8 @@ new Chart(document.getElementById("chartCommandes").getContext("2d"), {
     datasets: [{
       label: "Commandes",
       data: moisNb,
-      backgroundColor: "#25d36688",
-      borderColor: "#25d366",
+      backgroundColor: "#F59E0B88",
+      borderColor: "#F59E0B",
       borderWidth: 1,
       borderRadius: 4,
     }]

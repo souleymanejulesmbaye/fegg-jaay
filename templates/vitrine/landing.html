@@ -5,7 +5,7 @@
 <style>
   .hero {
     text-align: center; padding: 4rem 1rem 3rem;
-    background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
+    background: linear-gradient(135deg, #4A1D96 0%, #128c7e 100%);
     color: white; border-radius: 16px; margin-bottom: 2rem;
   }
   .hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.75rem; }
@@ -29,13 +29,13 @@
   .boutique-card .ville { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
 
   .how-it-works { margin: 3rem 0; }
-  .how-it-works h2 { text-align: center; font-size: 1.5rem; margin-bottom: 1.5rem; color: #075e54; }
+  .how-it-works h2 { text-align: center; font-size: 1.5rem; margin-bottom: 1.5rem; color: #4A1D96; }
   .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
   .step { text-align: center; padding: 1.5rem 1rem; }
   .step .num {
     display: inline-flex; align-items: center; justify-content: center;
     width: 40px; height: 40px; border-radius: 50%;
-    background: #25d366; color: white; font-weight: 700;
+    background: #F59E0B; color: white; font-weight: 700;
     font-size: 1.1rem; margin-bottom: 0.75rem;
   }
   .step h4 { font-size: 1rem; margin-bottom: 0.4rem; }
@@ -51,7 +51,7 @@
     {% if boutiques %}
     <a href="#boutiques" class="btn btn-primary">Voir les boutiques</a>
     {% endif %}
-    <a href="{% url 'dashboard:inscription' %}" class="btn btn-primary" style="background:white;color:#075e54;">
+    <a href="{% url 'dashboard:inscription' %}" class="btn btn-primary" style="background:white;color:#4A1D96;">
       Créer ma boutique
     </a>
     <a href="{% url 'dashboard:login' %}" class="btn btn-outline" style="border-color:white;color:white;">
@@ -61,7 +61,7 @@
 </div>
 
 {% if boutiques %}
-<h2 id="boutiques" style="font-size:1.3rem;margin-bottom:1rem;color:#075e54;">Nos boutiques</h2>
+<h2 id="boutiques" style="font-size:1.3rem;margin-bottom:1rem;color:#4A1D96;">Nos boutiques</h2>
 <div class="boutiques-grid">
   {% for b in boutiques %}
   <div class="boutique-card">

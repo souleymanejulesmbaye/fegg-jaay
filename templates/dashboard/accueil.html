@@ -38,7 +38,7 @@
     border-color: #a5d6a7; color: #2e7d32; background: #f1f8f1;
   }
   .onboarding-step.todo {
-    border-color: #25d366; color: #075e54;
+    border-color: #F59E0B; color: #4A1D96;
     box-shadow: 0 2px 8px rgba(37,211,102,.2);
   }
   .onboarding-step .step-icon { font-size: 1.1rem; }
@@ -50,7 +50,7 @@
     margin-top: 0.4rem; overflow: hidden;
   }
   .progress-fill {
-    height: 100%; background: #25d366; border-radius: 3px;
+    height: 100%; background: #F59E0B; border-radius: 3px;
     transition: width .4s;
   }
 </style>
@@ -109,7 +109,7 @@
     <div class="stat-label">Chiffre d'affaires</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number" style="color:{% if stats.commandes_en_attente > 0 %}#e67e22{% else %}#075e54{% endif %}">
+    <div class="stat-number" style="color:{% if stats.commandes_en_attente > 0 %}#e67e22{% else %}#4A1D96{% endif %}">
       {{ stats.commandes_en_attente }}
     </div>
     <div class="stat-label">En attente de paiement</div>
@@ -119,7 +119,7 @@
     <div class="stat-label">Clients total</div>
   </div>
   <div class="stat-card">
-    <div class="stat-number" style="color:{% if stats.produits_stock_bas > 0 %}#e74c3c{% else %}#075e54{% endif %}">
+    <div class="stat-number" style="color:{% if stats.produits_stock_bas > 0 %}#e74c3c{% else %}#4A1D96{% endif %}">
       {{ stats.produits_stock_bas }}
     </div>
     <div class="stat-label">Produits stock bas</div>
@@ -142,23 +142,23 @@
   <span style="font-size:0.85rem;color:#888;">Période :</span>
   <a href="?periode=7"
      style="padding:0.3rem 0.8rem;border-radius:20px;font-size:0.82rem;font-weight:600;text-decoration:none;
-            {% if periode == '7' %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
+            {% if periode == '7' %}background:#4A1D96;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
     7 jours
   </a>
   <a href="?periode=30"
      style="padding:0.3rem 0.8rem;border-radius:20px;font-size:0.82rem;font-weight:600;text-decoration:none;
-            {% if periode == '30' %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
+            {% if periode == '30' %}background:#4A1D96;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
     30 jours
   </a>
   <a href="?periode=90"
      style="padding:0.3rem 0.8rem;border-radius:20px;font-size:0.82rem;font-weight:600;text-decoration:none;
-            {% if periode == '90' %}background:#075e54;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
+            {% if periode == '90' %}background:#4A1D96;color:white;{% else %}background:#f0f2f5;color:#555;{% endif %}">
     3 mois
   </a>
   <span style="margin-left:0.5rem;font-size:0.85rem;color:#888;">
     {{ nb_commandes_periode }} commandes · {{ ca_periode|floatformat:0 }} FCFA
   </span>
-  <a href="{% url 'dashboard:stats' %}" style="margin-left:auto;font-size:0.82rem;color:#075e54;font-weight:600;">
+  <a href="{% url 'dashboard:stats' %}" style="margin-left:auto;font-size:0.82rem;color:#4A1D96;font-weight:600;">
     Voir stats détaillées →
   </a>
 </div>
@@ -289,8 +289,8 @@
       datasets: [{
         label: "Commandes",
         data: nbData,
-        backgroundColor: "#25d36688",
-        borderColor: "#25d366",
+        backgroundColor: "#F59E0B88",
+        borderColor: "#F59E0B",
         borderWidth: 1,
         borderRadius: 4,
       }]
@@ -310,11 +310,11 @@
       datasets: [{
         label: "CA (FCFA)",
         data: caData,
-        borderColor: "#075e54",
+        borderColor: "#4A1D96",
         backgroundColor: "rgba(7,94,84,.08)",
         tension: 0.4,
         fill: true,
-        pointBackgroundColor: "#075e54",
+        pointBackgroundColor: "#4A1D96",
         pointRadius: 3,
       }]
     },

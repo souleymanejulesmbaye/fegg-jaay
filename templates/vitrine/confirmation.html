@@ -10,9 +10,9 @@
     padding: 2.5rem; text-align: center;
   }
   .check { font-size: 3.5rem; margin-bottom: 1rem; }
-  .confirmation h1 { font-size: 1.6rem; font-weight: 800; color: #075e54; margin-bottom: 0.5rem; }
+  .confirmation h1 { font-size: 1.6rem; font-weight: 800; color: #4A1D96; margin-bottom: 0.5rem; }
   .confirmation .ref {
-    display: inline-block; background: #e8f5e9; color: #075e54;
+    display: inline-block; background: #e8f5e9; color: #4A1D96;
     font-weight: 700; font-size: 1.1rem; padding: 0.4rem 1rem;
     border-radius: 8px; margin: 1rem 0;
   }
@@ -22,7 +22,7 @@
   }
   .lignes .ligne { padding: 0.4rem 0; border-bottom: 1px solid #eee; font-size: 0.95rem; }
   .lignes .ligne:last-child { border-bottom: none; }
-  .total { font-weight: 700; font-size: 1.1rem; color: #075e54; margin: 0.5rem 0; }
+  .total { font-weight: 700; font-size: 1.1rem; color: #4A1D96; margin: 0.5rem 0; }
   .paiement-info {
     background: #fff8e1; border-radius: 10px; padding: 1rem 1.2rem;
     text-align: left; margin: 1.2rem 0; font-size: 0.9rem; color: #5d4037;
@@ -43,7 +43,7 @@
     {% for ligne in commande.lignes.all %}
     <div class="ligne">
       {{ ligne.quantite }}× {{ ligne.produit.nom }}
-      <span style="float:right;color:#075e54;font-weight:600;">{{ ligne.sous_total_formate }}</span>
+      <span style="float:right;color:#4A1D96;font-weight:600;">{{ ligne.sous_total_formate }}</span>
     </div>
     {% endfor %}
   </div>
@@ -75,13 +75,13 @@
 
   {% if boutique.qr_code_wave %}
   <div style="background:#f0f9ff;border:1px solid #b3e0ff;border-radius:12px;padding:1.2rem;margin:1.2rem 0;text-align:center;">
-    <p style="font-size:0.9rem;font-weight:700;color:#075e54;margin-bottom:0.8rem;">
+    <p style="font-size:0.9rem;font-weight:700;color:#4A1D96;margin-bottom:0.8rem;">
       📱 Payer avec Wave — scannez le QR code
     </p>
     <img src="{{ boutique.qr_code_wave.url }}" alt="QR Code Wave"
          style="width:180px;height:180px;object-fit:contain;border:1px solid #ddd;border-radius:8px;padding:6px;background:white;">
     <p style="font-size:0.82rem;color:#666;margin-top:0.6rem;">
-      Montant à payer : <strong style="color:#075e54;">{{ commande.montant_formate }}</strong>
+      Montant à payer : <strong style="color:#4A1D96;">{{ commande.montant_formate }}</strong>
     </p>
   </div>
   {% endif %}
@@ -107,7 +107,7 @@
            required>
 
     <button type="submit"
-            style="width:100%;padding:0.75rem;background:#25d366;color:white;border:none;border-radius:6px;font-size:0.95rem;font-weight:700;cursor:pointer;">
+            style="width:100%;padding:0.75rem;background:#F59E0B;color:white;border:none;border-radius:6px;font-size:0.95rem;font-weight:700;cursor:pointer;">
       {{ t.btn_confirmer_paiement }}
     </button>
   </form>
