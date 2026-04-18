@@ -73,6 +73,19 @@
     {{ t.payer_instr_prefix }} <strong>{{ commande.montant_formate }}</strong> {{ t.payer_instr_suffix }}
   </div>
 
+  {% if boutique.qr_code_wave %}
+  <div style="background:#f0f9ff;border:1px solid #b3e0ff;border-radius:12px;padding:1.2rem;margin:1.2rem 0;text-align:center;">
+    <p style="font-size:0.9rem;font-weight:700;color:#075e54;margin-bottom:0.8rem;">
+      📱 Payer avec Wave — scannez le QR code
+    </p>
+    <img src="{{ boutique.qr_code_wave.url }}" alt="QR Code Wave"
+         style="width:180px;height:180px;object-fit:contain;border:1px solid #ddd;border-radius:8px;padding:6px;background:white;">
+    <p style="font-size:0.82rem;color:#666;margin-top:0.6rem;">
+      Montant à payer : <strong style="color:#075e54;">{{ commande.montant_formate }}</strong>
+    </p>
+  </div>
+  {% endif %}
+
   <form method="post" action="{% url 'vitrine:soumettre_paiement' slug=boutique.slug ref=commande.numero_ref %}"
         style="text-align:left;background:#f9f9f9;border-radius:10px;padding:1.2rem;margin:1.2rem 0;">
     {% csrf_token %}

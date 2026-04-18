@@ -4,7 +4,7 @@
 {% block content %}
 <h2 style="margin-bottom:1.5rem;">Configuration de la boutique</h2>
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
   {% csrf_token %}
 
   <div class="card">
@@ -51,6 +51,32 @@
     </p>
     <textarea name="message_bienvenue" rows="4"
               style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;resize:vertical;">{{ boutique.message_bienvenue }}</textarea>
+  </div>
+
+  <div class="card">
+    <div class="card-title">QR Code Wave</div>
+    <p style="font-size:0.85rem;color:#888;margin-bottom:0.75rem;">
+      Uploadez votre QR code Wave marchand. Il sera affiché aux clients sur la page de paiement pour qu'ils puissent scanner et payer directement.
+    </p>
+    {% if boutique.qr_code_wave %}
+    <div style="margin-bottom:1rem;">
+      <img src="{{ boutique.qr_code_wave.url }}" alt="QR Code Wave" style="width:160px;height:160px;object-fit:contain;border:1px solid #eee;border-radius:8px;padding:8px;">
+      <div style="margin-top:0.5rem;">
+        <label style="font-size:0.85rem;color:#e74c3c;cursor:pointer;">
+          <input type="checkbox" name="supprimer_qr" value="1" style="margin-right:0.3rem;">
+          Supprimer le QR code
+        </label>
+      </div>
+    </div>
+    {% endif %}
+    <div>
+      <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">
+        {% if boutique.qr_code_wave %}Remplacer le QR code{% else %}Ajouter un QR code Wave{% endif %}
+      </label>
+      <input type="file" name="qr_code_wave" accept="image/*"
+             style="font-size:0.9rem;">
+      <small style="display:block;color:#aaa;font-size:0.78rem;margin-top:0.3rem;">PNG ou JPG recommandé. Taille max 5 Mo.</small>
+    </div>
   </div>
 
   <div class="card" style="background:#f9f9f9;">

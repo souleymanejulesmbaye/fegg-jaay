@@ -134,6 +134,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.ngrok-free.dev",
     "https://*.ngrok.io",
     "https://*.up.railway.app",
+    "https://feggjaay.shop",
+    "https://www.feggjaay.shop",
 ]
 
 # ─── Sécurité production ──────────────────────────────────────────────────────

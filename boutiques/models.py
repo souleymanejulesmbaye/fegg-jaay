@@ -72,6 +72,14 @@ class Boutique(models.Model):
     actif = models.BooleanField(default=True)
     abonnement_fin = models.DateField(null=True, blank=True)
 
+    # QR code Wave du commerçant — affiché sur la page de paiement
+    qr_code_wave = models.ImageField(
+        upload_to="qr_codes/",
+        blank=True,
+        null=True,
+        help_text="QR code Wave à scanner pour payer",
+    )
+
     # Description publique affichée sur la vitrine
     description = models.TextField(
         blank=True,

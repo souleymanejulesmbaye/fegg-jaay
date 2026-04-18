@@ -669,7 +669,13 @@ def config_boutique(request):
         if stock_alerte_global.isdigit():
             boutique.produits.filter(actif=True).update(stock_alerte=int(stock_alerte_global))
 
-        boutique.save(update_fields=["nom", "ville", "proprietaire_tel", "description", "message_bienvenue", "updated_at"])
+        # QR code Wave
+        if "qr_code_wave" in request.FILES:
+            boutique.qr_code_wave = request.FILES["qr_code_wave"]
+        elif request.POST.get("supprimer_qr"):
+            boutique.qr_code_wave = None
+
+        boutique.save(update_fields=["nom", "ville", "proprietaire_tel", "description", "message_bienvenue", "qr_code_wave", "updated_at"])
         messages.success(request, "Configuration mise à jour.")
         return redirect("dashboard:config_boutique")
 
