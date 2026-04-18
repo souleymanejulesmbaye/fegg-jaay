@@ -17,8 +17,9 @@
 
   .produits-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
     gap: 1rem; margin-bottom: 2rem;
+    overflow-x: hidden;
   }
   .produit-card {
     background: white; border-radius: 10px;
@@ -39,7 +40,7 @@
   .produit-card .prix { color: #4A1D96; font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; }
   .produit-card .stock { font-size: 0.8rem; color: #888; margin-bottom: 0.8rem; }
   .qte-control {
-    display: flex; align-items: center; gap: 0.5rem;
+    display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
   }
   .qte-control button {
     width: 30px; height: 30px; border-radius: 50%; border: none;
