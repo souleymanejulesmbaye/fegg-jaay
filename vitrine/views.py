@@ -38,6 +38,43 @@ def landing(request):
     return render(request, "vitrine/landing.html", {"boutiques": boutiques})
 
 
+def marche(request):
+    """Marketplace : tous les produits de toutes les boutiques actives."""
+    from boutiques.models import Categorie
+    q = request.GET.get("q", "").strip()
+    cat_id = request.GET.get("cat", "").strip()
+    boutique_slug = request.GET.get("boutique", "").strip()
+
+    produits = (
+        Produit.objects
+        .filter(actif=True, stock__gt=0, boutique__actif=True)
+        .select_related("boutique", "categorie")
+        .order_by("boutique__nom", "nom")
+    )
+    if q:
+        produits = produits.filter(nom__icontains=q)
+    if cat_id:
+        produits = produits.filter(categorie_id=cat_id)
+    if boutique_slug:
+        produits = produits.filter(boutique__slug=boutique_slug)
+
+    categories = (
+        Categorie.objects
+        .filter(produits__actif=True, produits__stock__gt=0, produits__boutique__actif=True)
+        .distinct().order_by("nom")
+    )
+    boutiques = Boutique.objects.filter(actif=True).order_by("nom")
+
+    return render(request, "vitrine/marche.html", {
+        "produits": produits,
+        "categories": categories,
+        "boutiques": boutiques,
+        "q": q,
+        "cat_active": cat_id,
+        "boutique_active": boutique_slug,
+    })
+
+
 def boutique(request, slug):
     """Vitrine publique d'une boutique : catalogue + formulaire de commande."""
     shop = get_object_or_404(Boutique, slug=slug, actif=True)

@@ -1,0 +1,170 @@
+{% extends "vitrine/base.html" %}
+{% block title %}Marché Fëgg Jaay — Tous les produits{% endblock %}
+
+{% block extra_css %}
+<style>
+  .marche-header {
+    background: linear-gradient(135deg, #4A1D96 0%, #128c7e 100%);
+    color: white; padding: 2.5rem 1.5rem; text-align: center;
+  }
+  .marche-header h1 { font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 800; margin-bottom: 0.5rem; }
+  .marche-header p { opacity: .8; font-size: 0.95rem; }
+
+  .marche-body { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+  /* Filtres */
+  .filtres-bar {
+    display: flex; gap: 0.7rem; flex-wrap: wrap;
+    margin-bottom: 1.2rem; align-items: center;
+  }
+  .filtres-bar input[type=search] {
+    flex: 1; min-width: 200px;
+    padding: 0.6rem 1rem; border: 1px solid #ddd;
+    border-radius: 20px; font-size: 0.9rem; outline: none;
+  }
+  .filtres-bar input[type=search]:focus { border-color: #4A1D96; }
+  .filtres-bar select {
+    padding: 0.6rem 1rem; border: 1px solid #ddd;
+    border-radius: 20px; font-size: 0.85rem;
+    background: white; cursor: pointer; outline: none;
+  }
+  .btn-filtre {
+    padding: 0.6rem 1.2rem; border: none; border-radius: 20px;
+    background: #4A1D96; color: white; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer;
+  }
+  .btn-reset {
+    padding: 0.6rem 1rem; border: 1px solid #ddd; border-radius: 20px;
+    background: white; color: #666; font-size: 0.85rem;
+    text-decoration: none; display: flex; align-items: center;
+  }
+
+  /* Stats */
+  .marche-stats { color: #888; font-size: 0.85rem; margin-bottom: 1rem; }
+
+  /* Grille produits */
+  .marche-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
+    gap: 1rem;
+  }
+
+  .marche-card {
+    background: white; border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    overflow: hidden; display: flex; flex-direction: column;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .marche-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+
+  .marche-card-img {
+    width: 100%; height: 150px; object-fit: cover;
+    display: block; background: #f0f2f5;
+  }
+  .marche-card-img-placeholder {
+    width: 100%; height: 150px; background: #f0f2f5;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; color: #ccc;
+  }
+  .marche-card-body { padding: 0.8rem; flex: 1; display: flex; flex-direction: column; }
+  .marche-card-nom { font-size: 0.9rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.2rem; line-height: 1.3; }
+  .marche-card-prix { color: #4A1D96; font-weight: 800; font-size: 1rem; margin-bottom: 0.4rem; }
+  .marche-card-boutique {
+    font-size: 0.75rem; color: #888;
+    display: flex; align-items: center; gap: 0.3rem;
+    margin-bottom: 0.7rem; flex: 1;
+  }
+  .marche-card-boutique span { color: #4A1D96; font-weight: 600; }
+  .btn-commander-card {
+    display: block; text-align: center;
+    background: #F59E0B; color: white;
+    padding: 0.5rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 700;
+    text-decoration: none; transition: background .15s;
+  }
+  .btn-commander-card:hover { background: #D97706; text-decoration: none; }
+
+  .vide { text-align: center; padding: 4rem 1rem; color: #888; }
+  .vide p { font-size: 1.1rem; margin-bottom: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="marche-header">
+  <h1>🛍️ Le Marché Fëgg Jaay</h1>
+  <p>Tous les produits des boutiques sénégalaises au même endroit</p>
+</div>
+
+<div class="marche-body">
+
+  {# ── Filtres ── #}
+  <form method="get" action="">
+    <div class="filtres-bar">
+      <input type="search" name="q" value="{{ q }}" placeholder="Rechercher un produit…">
+      <select name="cat">
+        <option value="">Toutes catégories</option>
+        {% for cat in categories %}
+        <option value="{{ cat.pk }}" {% if cat_active == cat.pk|stringformat:"s" %}selected{% endif %}>
+          {{ cat.nom }}
+        </option>
+        {% endfor %}
+      </select>
+      <select name="boutique">
+        <option value="">Toutes les boutiques</option>
+        {% for b in boutiques %}
+        <option value="{{ b.slug }}" {% if boutique_active == b.slug %}selected{% endif %}>
+          {{ b.nom }} — {{ b.ville }}
+        </option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-filtre">🔍 Filtrer</button>
+      {% if q or cat_active or boutique_active %}
+      <a href="{% url 'vitrine:marche' %}" class="btn-reset">✕ Effacer</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {# ── Stats #}
+  {% if produits %}
+  <p class="marche-stats">
+    <strong>{{ produits|length }}</strong> produit{{ produits|length|pluralize }} disponible{{ produits|length|pluralize }}
+    {% if boutique_active %}dans cette boutique{% endif %}
+  </p>
+
+  <div class="marche-grid">
+    {% for p in produits %}
+    <div class="marche-card">
+      {% if p.photo %}
+      <img src="{{ p.photo.url }}" alt="{{ p.nom }}" class="marche-card-img">
+      {% else %}
+      <div class="marche-card-img-placeholder">🛒</div>
+      {% endif %}
+
+      <div class="marche-card-body">
+        <div class="marche-card-nom">{{ p.nom }}</div>
+        <div class="marche-card-prix">{{ p.prix_formate }}</div>
+        <div class="marche-card-boutique">
+          🏪 <span>{{ p.boutique.nom }}</span> · {{ p.boutique.ville }}
+        </div>
+        <a href="{% url 'vitrine:boutique' slug=p.boutique.slug %}" class="btn-commander-card">
+          Commander →
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="vide">
+    <p>Aucun produit trouvé{% if q %} pour « {{ q }} »{% endif %}.</p>
+    {% if q or cat_active or boutique_active %}
+    <a href="{% url 'vitrine:marche' %}" style="color:#4A1D96;font-size:0.9rem;">Voir tous les produits →</a>
+    {% else %}
+    <p style="font-size:0.9rem;">Les boutiques n'ont pas encore de produits disponibles.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

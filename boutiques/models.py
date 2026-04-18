@@ -204,20 +204,27 @@ class Produit(models.Model):
             self._redimensionner_photo()
 
     def _redimensionner_photo(self, max_px: int = 800):
+        import os
         try:
-            img = Image.open(self.photo.path)
-            if img.width > max_px or img.height > max_px:
-                img.thumbnail((max_px, max_px), Image.LANCZOS)
-                buf = io.BytesIO()
-                fmt = "JPEG" if img.mode in ("RGB", "L") else "PNG"
-                if img.mode == "RGBA":
-                    img = img.convert("RGB")
-                    fmt = "JPEG"
-                img.save(buf, format=fmt, quality=85, optimize=True)
-                self.photo.save(self.photo.name, ContentFile(buf.getvalue()), save=False)
-                super().save(update_fields=["photo"])
+            with self.photo.open("rb") as fh:
+                img = Image.open(fh)
+                img.load()
+
+            if img.width <= max_px and img.height <= max_px:
+                return
+
+            img.thumbnail((max_px, max_px), Image.LANCZOS)
+            if img.mode == "RGBA":
+                img = img.convert("RGB")
+
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=85, optimize=True)
+
+            nom = os.path.basename(self.photo.name)
+            self.photo.save(nom, ContentFile(buf.getvalue()), save=False)
+            Produit.objects.filter(pk=self.pk).update(photo=self.photo.name)
         except Exception:
-            pass  # ne jamais bloquer la sauvegarde du produit
+            pass
 
     @property
     def prix_formate(self) -> str:

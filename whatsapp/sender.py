@@ -8,6 +8,7 @@ import logging
 
 import httpx
 from django.conf import settings
+from django.core.mail import send_mail
 
 from boutiques.models import Boutique
 
@@ -105,14 +106,34 @@ def _envoyer_twilio(boutique: Boutique, telephone_destinataire: str, texte: str)
 
 def envoyer_notification_commercant(boutique: Boutique, message: str) -> bool:
     """
-    Envoie une notification au propriétaire de la boutique via WhatsApp.
-    Utilisé pour notifier les nouvelles ventes et les alertes stock.
+    Envoie une notification au propriétaire via WhatsApp, avec fallback email.
     """
-    return envoyer_message_texte(
-        boutique=boutique,
-        telephone_destinataire=boutique.proprietaire_tel,
-        texte=message,
-    )
+    wa_ok = False
+    if boutique.proprietaire_tel:
+        wa_ok = envoyer_message_texte(
+            boutique=boutique,
+            telephone_destinataire=boutique.proprietaire_tel,
+            texte=message,
+        )
+
+    if not wa_ok:
+        _notifier_par_email(boutique, message)
+
+    return wa_ok
+
+
+def _notifier_par_email(boutique: Boutique, message: str) -> None:
+    """Envoie la notification par email si WhatsApp échoue ou n'est pas configuré."""
+    try:
+        email_dest = boutique.proprietaire.email if boutique.proprietaire else ""
+        if not email_dest or not settings.EMAIL_HOST_USER:
+            logger.warning("Email non configuré — notification non envoyée pour %s.", boutique.nom)
+            return
+        sujet = f"[{boutique.nom}] Nouvelle notification Fëgg Jaay"
+        send_mail(sujet, message, settings.DEFAULT_FROM_EMAIL, [email_dest], fail_silently=True)
+        logger.info("Email notification envoyé à %s (boutique %s).", email_dest, boutique.nom)
+    except Exception as exc:
+        logger.error("Erreur envoi email notification : %s", exc)
 
 
 def envoyer_message_bienvenue(boutique: Boutique, telephone: str) -> bool:
