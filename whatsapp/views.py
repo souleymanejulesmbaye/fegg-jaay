@@ -125,12 +125,13 @@ def _traiter_message_sync(msg_data: dict):
     try:
         boutique = Boutique.objects.get(telephone_wa=boutique_tel, actif=True)
     except Boutique.DoesNotExist:
-        logger.warning(
-            "Boutique introuvable pour le numéro '%s'. "
-            "Configurez telephone_wa=%s dans le dashboard.",
-            boutique_tel, boutique_tel,
-        )
-        return
+        # Sandbox Twilio : le To est toujours +14155238886, pas le numéro de la boutique.
+        # On prend la première boutique active (sandbox mono-tenant).
+        boutique = Boutique.objects.filter(actif=True).first()
+        if not boutique:
+            logger.warning("Aucune boutique active trouvée pour '%s'.", boutique_tel)
+            return
+        logger.info("Sandbox : boutique '%s' sélectionnée par défaut.", boutique.nom)
 
     # Déduplication
     if wa_message_id and MessageLog.objects.filter(wa_message_id=wa_message_id).exists():
