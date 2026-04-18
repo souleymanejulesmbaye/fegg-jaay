@@ -27,6 +27,7 @@ services:
       - db
       - redis
     volumes:
+      - .:/app
       - staticfiles:/app/staticfiles
 
   worker:
@@ -40,6 +41,8 @@ services:
     depends_on:
       - db
       - redis
+    volumes:
+      - .:/app
 
 volumes:
   postgres_data:
