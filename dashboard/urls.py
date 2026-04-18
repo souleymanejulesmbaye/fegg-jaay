@@ -48,6 +48,10 @@ urlpatterns = [
     # API interne JSON
     path("api/stats/", views.api_stats, name="api_stats"),
 
+    # Multi-boutique
+    path("changer-boutique/", views.changer_boutique, name="changer_boutique"),
+    path("nouvelle-boutique/", views.creer_boutique, name="creer_boutique"),
+
     # Web Push
     path("push/subscribe/", views.push_subscribe, name="push_subscribe"),
     path("push/unsubscribe/", views.push_unsubscribe, name="push_unsubscribe"),

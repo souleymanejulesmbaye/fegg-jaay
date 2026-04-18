@@ -1,0 +1,40 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Nouvelle boutique{% endblock %}
+
+{% block content %}
+<div style="max-width:480px;margin:0 auto;">
+  <h2 style="margin-bottom:1.5rem;">Créer une nouvelle boutique</h2>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-weight:600;margin-bottom:0.3rem;">Nom de la boutique</label>
+        <input type="text" name="nom_boutique" value="{{ post.nom_boutique }}"
+               style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+        {% if erreurs.nom_boutique %}<p style="color:#e74c3c;font-size:0.85rem;margin-top:0.25rem;">{{ erreurs.nom_boutique }}</p>{% endif %}
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-weight:600;margin-bottom:0.3rem;">Numéro WhatsApp</label>
+        <input type="tel" name="telephone" value="{{ post.telephone }}" placeholder="221XXXXXXXXX"
+               style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+        {% if erreurs.telephone %}<p style="color:#e74c3c;font-size:0.85rem;margin-top:0.25rem;">{{ erreurs.telephone }}</p>{% endif %}
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block;font-weight:600;margin-bottom:0.3rem;">Ville</label>
+        <input type="text" name="ville" value="{{ post.ville|default:'Dakar' }}"
+               style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%;">Créer la boutique</button>
+    </form>
+  </div>
+
+  <p style="text-align:center;margin-top:1rem;">
+    <a href="{% url 'dashboard:accueil' %}">← Retour au dashboard</a>
+  </p>
+</div>
+{% endblock %}

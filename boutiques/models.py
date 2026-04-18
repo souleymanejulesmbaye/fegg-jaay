@@ -26,12 +26,12 @@ class Boutique(models.Model):
     nom = models.CharField(max_length=200, verbose_name="Nom de la boutique")
 
     # Propriétaire (compte Django lié à cette boutique)
-    proprietaire = models.OneToOneField(
+    proprietaire = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="boutique",
+        related_name="boutiques",
         verbose_name="Compte propriétaire",
     )
 

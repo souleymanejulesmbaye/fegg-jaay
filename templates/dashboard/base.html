@@ -14,12 +14,19 @@
     /* Navigation */
     .navbar {
       background: #075e54; color: white; padding: 0.75rem 1.5rem;
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
     }
     .navbar .brand { font-size: 1.2rem; font-weight: 700; color: white; }
     .navbar nav a { color: #ccc; margin-left: 1.5rem; font-size: 0.9rem; }
     .navbar nav a:hover { color: white; text-decoration: none; }
     .navbar nav a.active { color: #25d366; font-weight: 600; }
+    /* Sélecteur boutique */
+    .boutique-switcher { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #ccc; }
+    .boutique-switcher select {
+      background: #0a7a6d; color: white; border: 1px solid #25d366;
+      border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; cursor: pointer;
+    }
+    .boutique-switcher select option { background: #075e54; }
 
     /* Layout */
     .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
@@ -90,6 +97,20 @@
 <div class="navbar">
   <span class="brand">🛍 Fëgg Jaay</span>
   {% if user.is_authenticated %}
+  {% if mes_boutiques|length > 1 %}
+  <form method="post" action="{% url 'dashboard:changer_boutique' %}" class="boutique-switcher">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <label for="boutique-select">Boutique :</label>
+    <select id="boutique-select" name="boutique_id" onchange="this.form.submit()">
+      {% for b in mes_boutiques %}
+      <option value="{{ b.pk }}" {% if boutique_active and b.pk == boutique_active.pk %}selected{% endif %}>{{ b.nom }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% elif boutique_active %}
+  <span style="color:#aaa;font-size:0.85rem;">{{ boutique_active.nom }}</span>
+  {% endif %}
   <nav>
     <a href="{% url 'dashboard:accueil' %}">Accueil</a>
     <a href="{% url 'dashboard:liste_produits' %}">Produits</a>
@@ -98,6 +119,7 @@
     <a href="{% url 'dashboard:test_bot' %}">Test Bot</a>
     <a href="{% url 'dashboard:zones_livraison' %}">Livraisons</a>
     <a href="{% url 'dashboard:config_boutique' %}">Config</a>
+    <a href="{% url 'dashboard:creer_boutique' %}">+ Boutique</a>
     {% if user.is_superuser %}<a href="{% url 'dashboard:superadmin_accueil' %}" style="color:#ffd700;">⚙ Super Admin</a>{% endif %}
     <a href="{% url 'dashboard:logout' %}">Déconnexion</a>
   </nav>

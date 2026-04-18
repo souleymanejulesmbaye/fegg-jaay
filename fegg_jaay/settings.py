@@ -65,6 +65,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "dashboard.context_processors.vapid_public_key",
+                "dashboard.context_processors.multi_boutique",
             ],
         },
     },

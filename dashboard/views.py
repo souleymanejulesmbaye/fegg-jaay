@@ -123,22 +123,55 @@ def vue_logout(request):
 # ─── Helper : récupérer la boutique de l'utilisateur connecté ─────────────────
 
 def _get_boutique(request):
-    """Retourne la boutique associée à l'utilisateur connecté."""
-    # 1. Liaison directe via FK proprietaire
-    try:
-        return request.user.boutique
-    except Boutique.DoesNotExist:
-        pass
-    # 2. Fallback legacy : username = proprietaire_tel
-    boutique = Boutique.objects.filter(
-        proprietaire_tel=request.user.username, actif=True
-    ).first()
-    if boutique:
-        return boutique
-    # 3. Fallback admin : première boutique active
-    if request.user.is_staff:
-        return Boutique.objects.filter(actif=True).first()
-    return None
+    """Retourne la boutique active pour l'utilisateur connecté.
+
+    Priorité :
+      1. Boutique choisie via le sélecteur (stockée en session)
+      2. Seule boutique du compte
+      3. Fallback legacy (proprietaire_tel = username)
+      4. Admin : première boutique active
+    """
+    user = request.user
+
+    # Toutes les boutiques du compte
+    qs = Boutique.objects.filter(proprietaire=user)
+    if not qs.exists():
+        # Fallback legacy
+        boutique = Boutique.objects.filter(
+            proprietaire_tel=user.username, actif=True
+        ).first()
+        if boutique:
+            return boutique
+        if user.is_staff:
+            return Boutique.objects.filter(actif=True).first()
+        return None
+
+    # Session : boutique choisie
+    boutique_id = request.session.get("boutique_active_id")
+    if boutique_id:
+        b = qs.filter(pk=boutique_id).first()
+        if b:
+            return b
+
+    # Par défaut : première boutique
+    b = qs.first()
+    request.session["boutique_active_id"] = str(b.pk)
+    return b
+
+
+def _get_mes_boutiques(request):
+    """Retourne toutes les boutiques de l'utilisateur connecté."""
+    return Boutique.objects.filter(proprietaire=request.user).order_by("nom")
+
+
+@login_required
+@require_POST
+def changer_boutique(request):
+    """Sélectionne la boutique active (POST: boutique_id)."""
+    boutique_id = request.POST.get("boutique_id", "").strip()
+    if boutique_id and Boutique.objects.filter(pk=boutique_id, proprietaire=request.user).exists():
+        request.session["boutique_active_id"] = boutique_id
+    return redirect(request.POST.get("next", "dashboard:accueil"))
 
 
 # ─── Accueil / Stats du jour ──────────────────────────────────────────────────
@@ -929,3 +962,49 @@ def api_stats(request):
             boutique=boutique, statut="attente_paiement"
         ).count(),
     })
+
+
+# ─── Créer une nouvelle boutique ──────────────────────────────────────────────
+
+@login_required
+def creer_boutique(request):
+    """Crée une nouvelle boutique pour l'utilisateur connecté."""
+    erreurs = {}
+
+    if request.method == "POST":
+        nom_boutique = request.POST.get("nom_boutique", "").strip()
+        telephone = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "")
+        ville = request.POST.get("ville", "Dakar").strip()
+
+        if not nom_boutique:
+            erreurs["nom_boutique"] = "Nom de boutique requis."
+        if not telephone:
+            erreurs["telephone"] = "Numéro WhatsApp requis."
+        elif Boutique.objects.filter(telephone_wa=telephone.lstrip("+")).exists():
+            erreurs["telephone"] = "Ce numéro est déjà utilisé."
+
+        if not erreurs:
+            from django.utils.text import slugify
+            slug_base = slugify(nom_boutique) or request.user.username
+            slug = slug_base
+            compteur = 1
+            while Boutique.objects.filter(slug=slug).exists():
+                slug = f"{slug_base}-{compteur}"
+                compteur += 1
+
+            tel_normalise = telephone.lstrip("+")
+            boutique = Boutique.objects.create(
+                proprietaire=request.user,
+                nom=nom_boutique,
+                telephone_wa=tel_normalise,
+                proprietaire_tel=tel_normalise,
+                ville=ville,
+                slug=slug,
+                wa_phone_id="",
+                wa_token="",
+            )
+            request.session["boutique_active_id"] = str(boutique.pk)
+            messages.success(request, f"Boutique « {nom_boutique} » créée.")
+            return redirect("dashboard:accueil")
+
+    return render(request, "dashboard/creer_boutique.html", {"erreurs": erreurs, "post": request.POST})
