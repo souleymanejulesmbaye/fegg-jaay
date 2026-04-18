@@ -30,20 +30,39 @@ MODEL_COMPLEXE = "claude-sonnet-4-6"          # analyse commandes complexes, err
 
 
 SYSTEM_PROMPT_TEMPLATE = """Tu es l'assistant WhatsApp de la boutique "{nom_boutique}" au Sénégal.
-Tu réponds aux clients qui veulent acheter des produits.
+Tu es intelligent, naturel et tu réponds à TOUT ce que le client dit — pas seulement aux commandes.
 
-RÈGLES IMPORTANTES :
-- Si le client écrit en wolof → réponds en wolof
-- Si le client écrit en français → réponds en français
+RÈGLES ABSOLUES :
+- Détecte la langue du client : français → réponds en français, wolof → réponds en wolof, mélange → français
 - Les prix sont TOUJOURS en FCFA (ex: 12 500 FCFA)
-- Sois chaleureux, concis et professionnel
+- Sois chaleureux, concis, humain — comme un vendeur sénégalais bienveillant
 - Ne propose que des produits disponibles en stock
-- Si le client donne son prénom, utilise-le dans tes réponses
+- Si le client donne son prénom, utilise-le naturellement
+- Tu peux répondre à des salutations, blagues, questions générales — reste toujours poli et professionnel
+- Si le client pose une question hors catalogue (horaires, localisation, etc.), réponds intelligemment avec ce que tu sais ou dis que le commerçant va répondre
 
 {client_info}
 {catalogue}
 
 {stock}
+
+QUAND RÉPONDRE AVEC INTENT "commande" :
+- Le client mentionne un produit du catalogue ET veut l'acheter
+
+QUAND RÉPONDRE AVEC INTENT "catalogue" :
+- Le client demande à voir les produits. Liste TOUS les produits disponibles avec prix.
+
+QUAND RÉPONDRE AVEC INTENT "paiement" :
+- Le client parle de Wave, Orange Money, d'un virement ou dit qu'il a payé
+
+QUAND RÉPONDRE AVEC INTENT "livraison" :
+- Le client demande où en est sa commande
+
+QUAND RÉPONDRE AVEC INTENT "annulation" :
+- Le client veut annuler une commande
+
+QUAND RÉPONDRE AVEC INTENT "autre" :
+- Salutations, remerciements, questions générales, bavardage — réponds naturellement et guide vers le catalogue si pertinent
 
 INSTRUCTIONS DE RÉPONSE :
 Tu dois TOUJOURS répondre avec un JSON valide (et uniquement du JSON) :
@@ -54,14 +73,7 @@ Tu dois TOUJOURS répondre avec un JSON valide (et uniquement du JSON) :
   "reponse": "message à envoyer au client"
 }}
 
-Note : "produits" est une liste — tu peux inclure plusieurs produits si le client en commande plusieurs.
-
-Intent "commande" : le client veut acheter quelque chose.
-Intent "catalogue" : le client demande les produits disponibles. Dans ce cas, le champ "reponse" DOIT lister TOUS les produits du catalogue avec leur nom et prix, par exemple : "Voici nos produits :\n- chaussure : 12 500 FCFA\n- sac en cuire : 30 000 FCFA\n- tissu wax : 65 000 FCFA\nTapez le nom du produit pour commander."
-Intent "paiement" : le client a payé ou envoie une preuve de paiement.
-Intent "livraison" : le client demande où en est sa commande.
-Intent "annulation" : le client veut annuler sa commande en cours.
-Intent "autre" : toute autre demande (salutation, question générale, adresse de livraison...).
+Note : "produits" est une liste vide [] si ce n'est pas une commande.
 """
 
 
@@ -274,12 +286,60 @@ def _simuler_reponse(message: str, system_prompt: str) -> str:
                  else "Votre commande est en cours de préparation. Nous vous tiendrons informé.")
         return json.dumps({"intent": "livraison", "produits": [], "langue": langue, "reponse": texte})
 
-    # ── Défaut ────────────────────────────────────────────────────────────
-    salut = f"Bonjour {prenom_client} ! " if prenom_client else "Bonjour ! "
-    texte = ("Nanga def ! Bëgg na la jënd ? Bind *catalogue* ngir xam yëgël yi am."
-             if langue == "wo"
-             else f"{salut}Comment puis-je vous aider ? Tapez *catalogue* pour voir nos produits.")
+    # ── Salutations ───────────────────────────────────────────────────────
+    salut_fr = ["bonjour", "bonsoir", "salut", "hello", "hi", "bjr", "bsr", "slt"]
+    salut_wo = ["nanga def", "naka", "jamm", "asalaamaalekum", "salam"]
+    if any(m in msg for m in salut_fr + salut_wo):
+        nom = f" {prenom_client}" if prenom_client else ""
+        liste = "\n".join(produits_avec_prix[:5]) if produits_avec_prix else ""
+        texte_fr = (
+            f"Bonjour{nom} ! 👋 Bienvenue chez *{_extraire_nom_boutique(system_prompt)}* !\n\n"
+            f"Voici nos produits du moment :\n{liste}\n\n"
+            f"Tapez *catalogue* pour tout voir ou dites-moi ce que vous cherchez 😊"
+            if liste else
+            f"Bonjour{nom} ! 👋 Bienvenue ! Comment puis-je vous aider ?"
+        )
+        texte_wo = (
+            f"Nanga def{nom} ! 👋 Dalal ak Yëgël ci *{_extraire_nom_boutique(system_prompt)}* !\n\n"
+            f"Yëgël yi am :\n{liste}\n\n"
+            f"Bind *catalogue* ngir xam bees."
+            if liste else
+            f"Nanga def{nom} ! 👋 Lan la bëgg ?"
+        )
+        texte = texte_wo if langue == "wo" else texte_fr
+        return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
+
+    # ── Remerciements ─────────────────────────────────────────────────────
+    merci_fr = ["merci", "thank", "super", "parfait", "excellent", "top", "ça marche", "ok merci", "d'accord"]
+    merci_wo = ["jërejëf", "yow def na", "neex na"]
+    if any(m in msg for m in merci_fr + merci_wo):
+        texte = ("Jërejëf ! Am na lu bëgg ? 😊" if langue == "wo"
+                 else "Avec plaisir ! 😊 Autre chose que je peux faire pour vous ?")
+        return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
+
+    # ── Défaut intelligent ────────────────────────────────────────────────
+    nom_boutique = _extraire_nom_boutique(system_prompt)
+    salut_prefix = f"Bonjour {prenom_client} ! " if prenom_client else ""
+    liste = "\n".join(produits_avec_prix[:5]) if produits_avec_prix else ""
+    texte_fr = (
+        f"{salut_prefix}Je suis l'assistant de *{nom_boutique}* 🤖\n\n"
+        f"Je peux vous aider à :\n"
+        f"• Voir notre catalogue (tapez *catalogue*)\n"
+        f"• Passer une commande\n"
+        f"• Suivre une commande\n\n"
+        f"Que puis-je faire pour vous ?"
+    )
+    texte_wo = (
+        f"Man moy assistant bi ci *{nom_boutique}* 🤖\n\n"
+        f"Bind *catalogue* ngir xam yëgël yi, walla yëgëlal lan la bëgg jënd."
+    )
+    texte = texte_wo if langue == "wo" else texte_fr
     return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
+
+
+def _extraire_nom_boutique(system_prompt: str) -> str:
+    m = re.search(r'boutique "([^"]+)"', system_prompt)
+    return m.group(1) if m else "la boutique"
 
 
 def _extraire_multi_produits(msg: str, produits_catalogue: list) -> list[dict]:
