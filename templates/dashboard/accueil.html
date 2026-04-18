@@ -4,7 +4,8 @@
 {% block extra_css %}
 <style>
   .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
-  @media (max-width: 750px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  @media (max-width: 750px) { .chart-grid, .chart-grid-3 { grid-template-columns: 1fr; } }
 
   /* Onboarding */
   .onboarding {
@@ -157,35 +158,71 @@
   <span style="margin-left:0.5rem;font-size:0.85rem;color:#888;">
     {{ nb_commandes_periode }} commandes · {{ ca_periode|floatformat:0 }} FCFA
   </span>
+  <a href="{% url 'dashboard:stats' %}" style="margin-left:auto;font-size:0.82rem;color:#075e54;font-weight:600;">
+    Voir stats détaillées →
+  </a>
 </div>
 
-<!-- Graphique période + Top produits -->
+<!-- Graphiques : commandes + CA + donut statuts -->
 <div class="chart-grid">
-  <div class="card">
-    <div class="card-title">Commandes — {{ periode }} derniers jours</div>
-    <canvas id="chartCommandes" height="120"></canvas>
+  <div style="display:grid;grid-template-rows:1fr 1fr;gap:1rem;">
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-title">Commandes — {{ periode }} derniers jours</div>
+      <canvas id="chartCommandes" height="100"></canvas>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-title">CA — {{ periode }} derniers jours</div>
+      <canvas id="chartCA" height="100"></canvas>
+    </div>
   </div>
-  <div class="card">
-    <div class="card-title">Top produits vendus</div>
-    {% if top_produits %}
-    <table>
-      <thead>
-        <tr><th>Produit</th><th style="text-align:right;">Vendus</th></tr>
-      </thead>
-      <tbody>
-        {% for p in top_produits %}
-        <tr>
-          <td>{{ p.produit__nom }}</td>
-          <td style="text-align:right;font-weight:600;">{{ p.total_vendu }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p style="color:#888;font-size:0.85rem;">Aucune vente enregistrée.</p>
-    {% endif %}
+  <div style="display:grid;grid-template-rows:1fr 1fr;gap:1rem;">
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-title">Répartition statuts</div>
+      <canvas id="chartStatuts" height="130"></canvas>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-title">Top produits</div>
+      {% if top_produits %}
+      <table>
+        <thead>
+          <tr><th>Produit</th><th style="text-align:right;">Qté</th></tr>
+        </thead>
+        <tbody>
+          {% for p in top_produits %}
+          <tr>
+            <td style="font-size:0.85rem;">{{ p.produit__nom }}</td>
+            <td style="text-align:right;font-weight:600;font-size:0.85rem;">{{ p.total_vendu }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="color:#888;font-size:0.85rem;">Aucune vente.</p>
+      {% endif %}
+    </div>
   </div>
 </div>
+
+<!-- Top clients -->
+{% if top_clients %}
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-title">Top clients</div>
+  <table>
+    <thead>
+      <tr><th>Client</th><th style="text-align:right;">CA (FCFA)</th><th style="text-align:right;">Commandes</th></tr>
+    </thead>
+    <tbody>
+      {% for c in top_clients %}
+      <tr>
+        <td>{{ c.client__prenom|default:c.client__telephone }}</td>
+        <td style="text-align:right;font-weight:600;">{{ c.ca|floatformat:0 }}</td>
+        <td style="text-align:right;color:#888;">{{ c.nb }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
 
 <!-- Dernières commandes -->
 <div class="card">
@@ -240,14 +277,18 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-  const ctx = document.getElementById("chartCommandes").getContext("2d");
-  new Chart(ctx, {
+  const labels = {{ jours_labels|safe }};
+  const nbData  = {{ jours_nb|safe }};
+  const caData  = {{ jours_ca|safe }};
+
+  // Graphique commandes (barres)
+  new Chart(document.getElementById("chartCommandes").getContext("2d"), {
     type: "bar",
     data: {
-      labels: {{ jours_labels|safe }},
+      labels,
       datasets: [{
         label: "Commandes",
-        data: {{ jours_nb|safe }},
+        data: nbData,
         backgroundColor: "#25d36688",
         borderColor: "#25d366",
         borderWidth: 1,
@@ -256,24 +297,50 @@
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            afterLabel: (ctx) => {
-              const ca = {{ jours_ca|safe }}[ctx.dataIndex];
-              return "CA : " + ca.toLocaleString("fr-FR") + " FCFA";
-            }
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { stepSize: 1 },
-        }
-      }
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
     }
   });
+
+  // Graphique CA (ligne)
+  new Chart(document.getElementById("chartCA").getContext("2d"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "CA (FCFA)",
+        data: caData,
+        borderColor: "#075e54",
+        backgroundColor: "rgba(7,94,84,.08)",
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: "#075e54",
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString("fr-FR") } } }
+    }
+  });
+
+  // Donut statuts
+  const statutsLabels = {{ statuts_labels|safe }};
+  const statutsNb     = {{ statuts_nb|safe }};
+  const donutColors   = {{ donut_colors|safe }};
+  if (statutsLabels.length > 0) {
+    new Chart(document.getElementById("chartStatuts").getContext("2d"), {
+      type: "doughnut",
+      data: {
+        labels: statutsLabels,
+        datasets: [{ data: statutsNb, backgroundColor: donutColors, borderWidth: 2 }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom", labels: { font: { size: 10 }, padding: 6 } } }
+      }
+    });
+  }
 </script>
 {% endblock %}

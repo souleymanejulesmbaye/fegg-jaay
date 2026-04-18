@@ -254,6 +254,42 @@ def accueil(request):
         .order_by("-total_vendu")[:5]
     )
 
+    # Top 5 clients par CA
+    top_clients = (
+        Commande.objects.filter(boutique=boutique, statut__in=["payee", "en_preparation", "livree"])
+        .values("client__prenom", "client__telephone")
+        .annotate(ca=Sum("montant_total"), nb=Count("id"))
+        .order_by("-ca")[:5]
+    )
+
+    # Répartition commandes par statut (pour donut)
+    statuts_data = (
+        Commande.objects.filter(boutique=boutique)
+        .values("statut")
+        .annotate(nb=Count("id"))
+    )
+    statuts_labels = []
+    statuts_nb = []
+    statuts_colors = {
+        "attente_paiement": "#ffc107",
+        "payee": "#17a2b8",
+        "en_preparation": "#6f42c1",
+        "livree": "#28a745",
+        "annulee": "#dc3545",
+    }
+    statuts_display = {
+        "attente_paiement": "Attente paiement",
+        "payee": "Payée",
+        "en_preparation": "En préparation",
+        "livree": "Livrée",
+        "annulee": "Annulée",
+    }
+    donut_colors = []
+    for s in statuts_data:
+        statuts_labels.append(statuts_display.get(s["statut"], s["statut"]))
+        statuts_nb.append(s["nb"])
+        donut_colors.append(statuts_colors.get(s["statut"], "#aaa"))
+
     # Onboarding : calcul des étapes complètes
     has_products = Produit.objects.filter(boutique=boutique, actif=True).exists()
     has_wa_config = bool(boutique.wa_phone_id and boutique.wa_token)
@@ -282,6 +318,10 @@ def accueil(request):
         "jours_nb": jours_nb,
         "jours_ca": jours_ca,
         "top_produits": top_produits,
+        "top_clients": top_clients,
+        "statuts_labels": statuts_labels,
+        "statuts_nb": statuts_nb,
+        "donut_colors": donut_colors,
         "onboarding_steps": onboarding_steps,
         "show_onboarding": show_onboarding,
         "onboarding_done": onboarding_done,
@@ -1008,3 +1048,114 @@ def creer_boutique(request):
             return redirect("dashboard:accueil")
 
     return render(request, "dashboard/creer_boutique.html", {"erreurs": erreurs, "post": request.POST})
+
+
+# ─── Page statistiques avancées ───────────────────────────────────────────────
+
+@login_required
+def stats(request):
+    """Page statistiques avancées : vue mensuelle, annuelle, comparaisons."""
+    boutique = _get_boutique(request)
+    if not boutique:
+        return redirect("dashboard:accueil")
+
+    from django.db.models.functions import TruncMonth, TruncYear
+    from datetime import date
+
+    annee = request.GET.get("annee", str(timezone.now().year))
+    try:
+        annee = int(annee)
+    except ValueError:
+        annee = timezone.now().year
+
+    annees_dispo = (
+        Commande.objects.filter(boutique=boutique)
+        .dates("created_at", "year")
+    )
+    annees_list = [d.year for d in annees_dispo] or [timezone.now().year]
+
+    # CA et nb commandes par mois pour l'année sélectionnée
+    mois_qs = (
+        Commande.objects.filter(boutique=boutique, created_at__year=annee)
+        .annotate(mois=TruncMonth("created_at"))
+        .values("mois")
+        .annotate(nb=Count("id"), ca=Sum("montant_total"))
+        .order_by("mois")
+    )
+    noms_mois = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"]
+    mois_labels = noms_mois[:]
+    mois_nb = [0] * 12
+    mois_ca = [0] * 12
+    for row in mois_qs:
+        idx = row["mois"].month - 1
+        mois_nb[idx] = row["nb"]
+        mois_ca[idx] = row["ca"] or 0
+
+    # Totaux annuels
+    total_annee_nb = sum(mois_nb)
+    total_annee_ca = sum(mois_ca)
+
+    # Comparaison avec l'année précédente
+    annee_prec = annee - 1
+    ca_prec = Commande.objects.filter(
+        boutique=boutique, created_at__year=annee_prec,
+        statut__in=["payee", "en_preparation", "livree"]
+    ).aggregate(total=Sum("montant_total"))["total"] or 0
+    ca_actuel = Commande.objects.filter(
+        boutique=boutique, created_at__year=annee,
+        statut__in=["payee", "en_preparation", "livree"]
+    ).aggregate(total=Sum("montant_total"))["total"] or 0
+    evolution_ca = None
+    if ca_prec:
+        evolution_ca = round((ca_actuel - ca_prec) / ca_prec * 100, 1)
+
+    # Top 10 produits de l'année
+    top_produits_annee = (
+        LigneCommande.objects.filter(commande__boutique=boutique, commande__created_at__year=annee)
+        .values("produit__nom")
+        .annotate(total_vendu=Sum("quantite"), ca=Sum("prix_unitaire"))
+        .order_by("-total_vendu")[:10]
+    )
+
+    # Top 10 clients de l'année
+    top_clients_annee = (
+        Commande.objects.filter(
+            boutique=boutique, created_at__year=annee,
+            statut__in=["payee", "en_preparation", "livree"]
+        )
+        .values("client__prenom", "client__telephone")
+        .annotate(ca=Sum("montant_total"), nb=Count("id"))
+        .order_by("-ca")[:10]
+    )
+
+    # Taux de conversion (commandes payées / total)
+    total_cmds = Commande.objects.filter(boutique=boutique, created_at__year=annee).count()
+    payees_cmds = Commande.objects.filter(
+        boutique=boutique, created_at__year=annee,
+        statut__in=["payee", "en_preparation", "livree"]
+    ).count()
+    taux_conversion = round(payees_cmds / total_cmds * 100, 1) if total_cmds else 0
+
+    # Panier moyen
+    panier_moyen = round(ca_actuel / payees_cmds) if payees_cmds else 0
+
+    return render(request, "dashboard/stats.html", {
+        "boutique": boutique,
+        "annee": annee,
+        "annees_list": annees_list,
+        "mois_labels": mois_labels,
+        "mois_nb": mois_nb,
+        "mois_ca": mois_ca,
+        "total_annee_nb": total_annee_nb,
+        "total_annee_ca": total_annee_ca,
+        "ca_prec": ca_prec,
+        "ca_actuel": ca_actuel,
+        "evolution_ca": evolution_ca,
+        "annee_prec": annee_prec,
+        "top_produits_annee": top_produits_annee,
+        "top_clients_annee": top_clients_annee,
+        "taux_conversion": taux_conversion,
+        "panier_moyen": panier_moyen,
+        "total_cmds": total_cmds,
+        "payees_cmds": payees_cmds,
+    })
