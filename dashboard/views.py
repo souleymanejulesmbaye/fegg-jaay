@@ -9,6 +9,21 @@ import csv
 import logging
 from datetime import timedelta
 
+VILLES_SENEGAL = [
+    "Dakar", "Pikine", "Guédiawaye", "Rufisque", "Thiès", "Mbour", "Tivaouane",
+    "Diourbel", "Touba", "Mbacké", "Kaolack", "Nioro du Rip", "Gossas",
+    "Fatick", "Foundiougne", "Ziguinchor", "Bignona", "Oussouye",
+    "Saint-Louis", "Dagana", "Podor", "Richard-Toll",
+    "Louga", "Linguère", "Kébémer",
+    "Tambacounda", "Bakel", "Goudiry",
+    "Kolda", "Vélingara", "Médina Yoro Foulah",
+    "Sédhiou", "Bounkiling", "Goudomp",
+    "Kaffrine", "Birkelane", "Koungheul", "Malem Hodar",
+    "Matam", "Kanel", "Ranérou",
+    "Kédougou", "Saraya", "Salemata",
+    "Autre",
+]
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
@@ -663,6 +678,8 @@ def config_boutique(request):
         boutique.proprietaire_tel = request.POST.get("proprietaire_tel", boutique.proprietaire_tel).strip()
         boutique.description = request.POST.get("description", boutique.description).strip()
         boutique.message_bienvenue = request.POST.get("message_bienvenue", boutique.message_bienvenue).strip()
+        boutique.wa_phone_id = request.POST.get("wa_phone_id", boutique.wa_phone_id).strip()
+        boutique.wa_token = request.POST.get("wa_token", boutique.wa_token).strip()
 
         # Mise à jour stock_alerte global sur tous les produits si fourni
         stock_alerte_global = request.POST.get("stock_alerte_global", "").strip()
@@ -675,11 +692,11 @@ def config_boutique(request):
         elif request.POST.get("supprimer_qr"):
             boutique.qr_code_wave = None
 
-        boutique.save(update_fields=["nom", "ville", "proprietaire_tel", "description", "message_bienvenue", "qr_code_wave", "updated_at"])
+        boutique.save(update_fields=["nom", "ville", "proprietaire_tel", "description", "message_bienvenue", "qr_code_wave", "wa_phone_id", "wa_token", "updated_at"])
         messages.success(request, "Configuration mise à jour.")
         return redirect("dashboard:config_boutique")
 
-    return render(request, "dashboard/config.html", {"boutique": boutique})
+    return render(request, "dashboard/config.html", {"boutique": boutique, "villes_senegal": VILLES_SENEGAL})
 
 
 # ─── Catégories produits ──────────────────────────────────────────────────────
@@ -1053,7 +1070,7 @@ def creer_boutique(request):
             messages.success(request, f"Boutique « {nom_boutique} » créée.")
             return redirect("dashboard:accueil")
 
-    return render(request, "dashboard/creer_boutique.html", {"erreurs": erreurs, "post": request.POST})
+    return render(request, "dashboard/creer_boutique.html", {"erreurs": erreurs, "post": request.POST, "villes_senegal": VILLES_SENEGAL})
 
 
 # ─── Page statistiques avancées ───────────────────────────────────────────────

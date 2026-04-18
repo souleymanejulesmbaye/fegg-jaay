@@ -25,8 +25,11 @@
 
       <div style="margin-bottom:1.5rem;">
         <label style="display:block;font-weight:600;margin-bottom:0.3rem;">Ville</label>
-        <input type="text" name="ville" value="{{ post.ville|default:'Dakar' }}"
-               style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+        <select name="ville" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;background:white;">
+          {% for v in villes_senegal %}
+          <option value="{{ v }}" {% if post.ville == v or not post.ville and v == "Dakar" %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
       </div>
 
       <button type="submit" class="btn btn-primary" style="width:100%;">Créer la boutique</button>

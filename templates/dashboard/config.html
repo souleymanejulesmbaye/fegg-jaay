@@ -18,8 +18,11 @@
       </div>
       <div>
         <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">Ville</label>
-        <input type="text" name="ville" value="{{ boutique.ville }}"
-               style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+        <select name="ville" style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;background:white;">
+          {% for v in villes_senegal %}
+          <option value="{{ v }}" {% if boutique.ville == v %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
       </div>
       <div>
         <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">Téléphone propriétaire (pour les notifications)</label>
@@ -76,6 +79,27 @@
       <input type="file" name="qr_code_wave" accept="image/*"
              style="font-size:0.9rem;">
       <small style="display:block;color:#aaa;font-size:0.78rem;margin-top:0.3rem;">PNG ou JPG recommandé. Taille max 5 Mo.</small>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Configuration WhatsApp API</div>
+    <p style="font-size:0.85rem;color:#888;margin-bottom:0.75rem;">
+      Obtenez ces informations depuis votre application Meta for Developers.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+      <div>
+        <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">Phone Number ID</label>
+        <input type="text" name="wa_phone_id" value="{{ boutique.wa_phone_id }}"
+               placeholder="Ex: 123456789012345"
+               style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.85rem;color:#555;margin-bottom:0.3rem;">Token d'accès (Access Token)</label>
+        <input type="text" name="wa_token" value="{{ boutique.wa_token }}"
+               placeholder="EAAxxxxx..."
+               style="width:100%;padding:0.6rem;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+      </div>
     </div>
   </div>
 
