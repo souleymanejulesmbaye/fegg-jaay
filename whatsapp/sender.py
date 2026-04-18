@@ -37,16 +37,42 @@ def envoyer_message_texte(
     texte: str,
 ) -> bool:
     """
-    Envoie un message texte WhatsApp via Twilio.
-
-    Args:
-        boutique: instance Boutique (non utilisé pour Twilio sandbox, gardé pour compatibilité)
-        telephone_destinataire: numéro avec indicatif, ex: "221771234567"
-        texte: contenu du message
-
-    Returns:
-        True si l'envoi a réussi, False sinon
+    Envoie un message texte WhatsApp.
+    Utilise Meta API si la boutique a wa_phone_id + wa_token, sinon Twilio sandbox.
     """
+    if boutique.wa_phone_id and boutique.wa_token:
+        return _envoyer_meta(boutique, telephone_destinataire, texte)
+    return _envoyer_twilio(boutique, telephone_destinataire, texte)
+
+
+def _envoyer_meta(boutique: Boutique, telephone_destinataire: str, texte: str) -> bool:
+    """Envoie via Meta WhatsApp Business API avec les credentials de la boutique."""
+    t = telephone_destinataire.strip().replace("+", "").replace(" ", "")
+    url = f"https://graph.facebook.com/v18.0/{boutique.wa_phone_id}/messages"
+    headers = {"Authorization": f"Bearer {boutique.wa_token}", "Content-Type": "application/json"}
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": t,
+        "type": "text",
+        "text": {"body": texte},
+    }
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            logger.info("Meta: message envoyé à %s (boutique %s)", t, boutique.nom)
+            return True
+    except httpx.TimeoutException:
+        logger.error("Meta: timeout envoi à %s (boutique %s)", t, boutique.nom)
+    except httpx.HTTPStatusError as exc:
+        logger.error("Meta: erreur HTTP %d à %s : %s", exc.response.status_code, t, exc.response.text[:300])
+    except Exception as exc:
+        logger.exception("Meta: erreur inattendue à %s : %s", t, exc)
+    return False
+
+
+def _envoyer_twilio(boutique: Boutique, telephone_destinataire: str, texte: str) -> bool:
+    """Envoie via Twilio WhatsApp Sandbox."""
     if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
         logger.warning("Twilio non configuré — message non envoyé à %s", telephone_destinataire)
         return False
@@ -66,33 +92,14 @@ def envoyer_message_texte(
                 },
             )
             response.raise_for_status()
-            logger.info(
-                "Message envoyé à %s (boutique %s)",
-                telephone_destinataire,
-                boutique.nom,
-            )
+            logger.info("Twilio: message envoyé à %s (boutique %s)", telephone_destinataire, boutique.nom)
             return True
-
     except httpx.TimeoutException:
-        logger.error(
-            "Timeout lors de l'envoi à %s (boutique %s)",
-            telephone_destinataire,
-            boutique.nom,
-        )
+        logger.error("Twilio: timeout envoi à %s (boutique %s)", telephone_destinataire, boutique.nom)
     except httpx.HTTPStatusError as exc:
-        logger.error(
-            "Erreur HTTP %d lors de l'envoi à %s : %s",
-            exc.response.status_code,
-            telephone_destinataire,
-            exc.response.text[:300],
-        )
+        logger.error("Twilio: erreur HTTP %d à %s : %s", exc.response.status_code, telephone_destinataire, exc.response.text[:300])
     except Exception as exc:
-        logger.exception(
-            "Erreur inattendue lors de l'envoi à %s : %s",
-            telephone_destinataire,
-            exc,
-        )
-
+        logger.exception("Twilio: erreur inattendue à %s : %s", telephone_destinataire, exc)
     return False
 
 

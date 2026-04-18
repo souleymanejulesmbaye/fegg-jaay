@@ -3,16 +3,18 @@ Webhook WhatsApp pour Fëgg Jaay.
 
 Endpoints :
   GET  /wa/webhook/  → vérification du webhook (Meta challenge)
-  POST /wa/webhook/  → réception des messages entrants (Twilio sandbox)
+  POST /wa/webhook/  → réception des messages entrants (Meta API ou Twilio sandbox)
 
-En mode DEBUG, le traitement est synchrone (pas besoin de Celery).
-En production, délègue à Celery.
+Détection automatique du provider :
+  - Meta API  : Content-Type application/json, champ "object" dans le body
+  - Twilio    : form data avec champ "From"
 """
 
+import json
 import logging
 
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
@@ -27,60 +29,107 @@ def webhook(request):
     return _recevoir_message(request)
 
 
-# ─── Vérification initiale du webhook (Meta/Twilio) ──────────────────────────
+# ─── Vérification initiale du webhook (Meta) ─────────────────────────────────
 
 def _verifier_webhook(request):
-    """
-    Meta envoie un GET avec hub.mode=subscribe, hub.verify_token et hub.challenge.
-    Twilio ne fait pas de vérification GET — on répond juste 200.
-    """
     mode = request.GET.get("hub.mode")
     token = request.GET.get("hub.verify_token")
     challenge = request.GET.get("hub.challenge")
 
-    if mode == "subscribe" and token == settings.WA_WEBHOOK_VERIFY_TOKEN:
-        logger.info("Webhook WhatsApp vérifié avec succès.")
+    if mode == "subscribe" and token == getattr(settings, "WA_WEBHOOK_VERIFY_TOKEN", ""):
+        logger.info("Webhook Meta vérifié avec succès.")
         return HttpResponse(challenge, content_type="text/plain", status=200)
 
-    # Twilio — simple ping GET
     return HttpResponse("OK", status=200)
 
 
-# ─── Réception des messages entrants (Twilio) ────────────────────────────────
+# ─── Réception des messages entrants ─────────────────────────────────────────
 
 def _recevoir_message(request):
-    """
-    Extrait le message depuis le POST Twilio (form data) et le traite.
-    En DEBUG : traitement synchrone direct.
-    En production : délègue à Celery.
-    """
-    # Twilio envoie du form data, pas du JSON
-    from_number = request.POST.get("From", "")   # ex: "whatsapp:+221771234567"
-    to_number = request.POST.get("To", "")       # ex: "whatsapp:+14155238886"
+    content_type = request.content_type or ""
+
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(request.body)
+        except json.JSONDecodeError:
+            return HttpResponse("Bad Request", status=400)
+
+        if payload.get("object") == "whatsapp_business_account":
+            return _recevoir_meta(payload)
+
+    # Twilio : form data
+    return _recevoir_twilio(request)
+
+
+# ─── Provider Meta ────────────────────────────────────────────────────────────
+
+def _recevoir_meta(payload: dict):
+    """Traite les messages entrants depuis Meta WhatsApp Business API."""
+    try:
+        for entry in payload.get("entry", []):
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+                messages = value.get("messages", [])
+                if not messages:
+                    continue
+
+                phone_number_id = value.get("metadata", {}).get("phone_number_id", "")
+                msg = messages[0]
+                from_number = msg.get("from", "")
+                wa_message_id = msg.get("id", "")
+                msg_type = msg.get("type", "text")
+
+                if msg_type == "text":
+                    contenu = msg.get("text", {}).get("body", "")
+                elif msg_type == "audio":
+                    contenu = msg.get("audio", {}).get("id", "")
+                elif msg_type == "image":
+                    contenu = msg.get("image", {}).get("id", "")
+                else:
+                    contenu = ""
+
+                logger.info(
+                    "Message Meta reçu — phone_number_id=%s from=%s body=%s...",
+                    phone_number_id, from_number, contenu[:50],
+                )
+
+                msg_data = {
+                    "provider": "meta",
+                    "phone_number_id": phone_number_id,
+                    "client_telephone": from_number,
+                    "wa_message_id": wa_message_id,
+                    "type_message": msg_type,
+                    "contenu": contenu,
+                }
+                _traiter_message_sync(msg_data)
+
+    except Exception as exc:
+        logger.exception("Erreur traitement webhook Meta : %s", exc)
+
+    return HttpResponse("OK", status=200)
+
+
+# ─── Provider Twilio ──────────────────────────────────────────────────────────
+
+def _recevoir_twilio(request):
+    """Traite les messages entrants depuis Twilio WhatsApp Sandbox."""
+    from_number = request.POST.get("From", "")
+    to_number = request.POST.get("To", "")
     body = request.POST.get("Body", "")
     message_sid = request.POST.get("MessageSid", "")
     num_media = int(request.POST.get("NumMedia", 0))
 
     if not from_number:
-        logger.warning("Webhook reçu sans champ 'From' — ignoré.")
+        logger.warning("Webhook Twilio reçu sans champ 'From' — ignoré.")
         return HttpResponse("OK", status=200)
 
-    # Nettoyer les numéros (enlever "whatsapp:")
     client_tel = from_number.replace("whatsapp:", "").replace("+", "")
     boutique_tel = to_number.replace("whatsapp:", "")
 
-    # Déterminer le type de message
     if num_media > 0:
         media_type = request.POST.get("MediaContentType0", "")
-        if "audio" in media_type:
-            type_msg = "audio"
-            contenu = request.POST.get("MediaUrl0", "")
-        elif "image" in media_type:
-            type_msg = "image"
-            contenu = request.POST.get("MediaUrl0", "")
-        else:
-            type_msg = "document"
-            contenu = request.POST.get("MediaUrl0", "")
+        type_msg = "audio" if "audio" in media_type else ("image" if "image" in media_type else "document")
+        contenu = request.POST.get("MediaUrl0", "")
     else:
         type_msg = "text"
         contenu = body
@@ -91,49 +140,51 @@ def _recevoir_message(request):
     )
 
     msg_data = {
+        "provider": "twilio",
         "boutique_telephone_wa": boutique_tel,
         "client_telephone": client_tel,
         "wa_message_id": message_sid,
         "type_message": type_msg,
         "contenu": contenu,
-        "timestamp": "",
     }
-
     _traiter_message_sync(msg_data)
-
-    # Twilio attend toujours un 200 rapide
     return HttpResponse("OK", status=200)
 
 
-# ─── Traitement synchrone (mode DEBUG) ───────────────────────────────────────
+# ─── Traitement commun ────────────────────────────────────────────────────────
 
 def _traiter_message_sync(msg_data: dict):
-    """
-    Version synchrone de traiter_message_entrant pour le développement local.
-    Évite d'avoir besoin de Celery/Redis pour tester.
-    """
     from boutiques.models import Boutique, Client, MessageLog
     from .bot_engine import traiter_message
     from .sender import envoyer_message_texte, envoyer_message_bienvenue
 
-    boutique_tel = msg_data.get("boutique_telephone_wa", "")
+    provider = msg_data.get("provider", "twilio")
     client_tel = msg_data.get("client_telephone", "")
     wa_message_id = msg_data.get("wa_message_id", "")
     type_msg = msg_data.get("type_message", "text")
     contenu = msg_data.get("contenu", "")
 
-    try:
-        boutique = Boutique.objects.get(telephone_wa=boutique_tel, actif=True)
-    except Boutique.DoesNotExist:
-        # Sandbox Twilio : le To est toujours +14155238886, pas le numéro de la boutique.
-        # On prend la première boutique active (sandbox mono-tenant).
-        boutique = Boutique.objects.filter(actif=True).first()
-        if not boutique:
-            logger.warning("Aucune boutique active trouvée pour '%s'.", boutique_tel)
+    # ── Trouver la boutique ───────────────────────────────────────────────
+    if provider == "meta":
+        phone_number_id = msg_data.get("phone_number_id", "")
+        try:
+            boutique = Boutique.objects.get(wa_phone_id=phone_number_id, actif=True)
+        except Boutique.DoesNotExist:
+            logger.warning("Boutique introuvable pour phone_number_id='%s'.", phone_number_id)
             return
-        logger.info("Sandbox : boutique '%s' sélectionnée par défaut.", boutique.nom)
+    else:
+        # Twilio sandbox : To = +14155238886, pas le numéro de la boutique
+        boutique_tel = msg_data.get("boutique_telephone_wa", "")
+        try:
+            boutique = Boutique.objects.get(telephone_wa=boutique_tel, actif=True)
+        except Boutique.DoesNotExist:
+            boutique = Boutique.objects.filter(actif=True).first()
+            if not boutique:
+                logger.warning("Aucune boutique active trouvée pour '%s'.", boutique_tel)
+                return
+            logger.info("Sandbox : boutique '%s' sélectionnée par défaut.", boutique.nom)
 
-    # Déduplication
+    # ── Déduplication ────────────────────────────────────────────────────
     if wa_message_id and MessageLog.objects.filter(wa_message_id=wa_message_id).exists():
         logger.info("Message %s déjà traité — ignoré.", wa_message_id)
         return
