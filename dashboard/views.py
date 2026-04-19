@@ -110,7 +110,7 @@ def inscription(request):
             messages.success(request, f"Bienvenue ! Votre boutique *{nom_boutique}* est créée.")
             return redirect("dashboard:accueil")
 
-    return render(request, "dashboard/inscription.html", {"erreurs": erreurs, "post": request.POST})
+    return render(request, "dashboard/inscription.html", {"erreurs": erreurs, "post": request.POST, "villes_senegal": VILLES_SENEGAL})
 
 
 def vue_login(request):

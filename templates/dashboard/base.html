@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -95,7 +96,10 @@
 <body>
 
 <div class="navbar">
-  <span class="brand">🛍 Fëgg Jaay</span>
+  <span class="brand">
+    <img src="{% static 'img/fegg_jaay_icon.svg' %}" alt="Fëgg Jaay" style="height:32px;width:32px;border-radius:7px;vertical-align:middle;margin-right:0.4rem;">
+    <span style="vertical-align:middle;">Fëgg<span style="color:#F59E0B;">Jaay</span></span>
+  </span>
   {% if user.is_authenticated %}
   {% if mes_boutiques|length > 1 %}
   <form method="post" action="{% url 'dashboard:changer_boutique' %}" class="boutique-switcher">

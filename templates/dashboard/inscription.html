@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -43,7 +44,10 @@
 </head>
 <body>
 <div class="card">
-  <h1>🛍 Fëgg Jaay</h1>
+  <div style="text-align:center;margin-bottom:1.5rem;">
+    <img src="{% static 'img/fegg_jaay_icon.svg' %}" alt="Fëgg Jaay" style="height:72px;width:72px;border-radius:16px;">
+  </div>
+  <h1>Fëgg Jaay</h1>
   <p class="subtitle">Créez votre boutique en ligne gratuitement</p>
 
   <form method="post">
@@ -70,16 +74,9 @@
     <div class="field">
       <label for="ville">Ville</label>
       <select id="ville" name="ville">
-          <option value="Dakar" {% if post.ville == "Dakar" or not post.ville %}selected{% endif %}>Dakar</option>
-        <option value="Thiès" {% if post.ville == "Thiès" %}selected{% endif %}>Thiès</option>
-        <option value="Saint-Louis" {% if post.ville == "Saint-Louis" %}selected{% endif %}>Saint-Louis</option>
-        <option value="Ziguinchor" {% if post.ville == "Ziguinchor" %}selected{% endif %}>Ziguinchor</option>
-        <option value="Kaolack" {% if post.ville == "Kaolack" %}selected{% endif %}>Kaolack</option>
-        <option value="Diourbel" {% if post.ville == "Diourbel" %}selected{% endif %}>Diourbel</option>
-        <option value="Touba" {% if post.ville == "Touba" %}selected{% endif %}>Touba</option>
-        <option value="Mbour" {% if post.ville == "Mbour" %}selected{% endif %}>Mbour</option>
-        <option value="Rufisque" {% if post.ville == "Rufisque" %}selected{% endif %}>Rufisque</option>
-        <option value="Louga" {% if post.ville == "Louga" %}selected{% endif %}>Louga</option>
+        {% for v in villes_senegal %}
+        <option value="{{ v }}" {% if post.ville == v or not post.ville and v == "Dakar" %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
       </select>
     </div>
 

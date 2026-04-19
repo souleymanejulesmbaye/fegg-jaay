@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -66,7 +67,10 @@
 <body>
 
 <div class="header">
-  <a href="{% url 'vitrine:landing' %}" class="brand">🛍 Fëgg<span>Jaay</span></a>
+  <a href="{% url 'vitrine:landing' %}" class="brand">
+    <img src="{% static 'img/fegg_jaay_icon.svg' %}" alt="Fëgg Jaay" style="height:36px;width:36px;border-radius:8px;vertical-align:middle;margin-right:0.5rem;">
+    <span style="vertical-align:middle;">Fëgg<span style="color:#F59E0B;">Jaay</span></span>
+  </a>
   <div class="nav-links">
     {% block nav_extra %}{% endblock %}
     {% if t %}
