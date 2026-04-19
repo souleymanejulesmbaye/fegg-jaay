@@ -15,13 +15,21 @@
     /* Header */
     .header {
       background: #4A1D96; color: white;
-      padding: 1rem 1.5rem;
+      padding: 0.75rem 1.5rem;
       display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.5rem;
     }
-    .header .brand { font-size: 1.3rem; font-weight: 700; color: white; }
+    .header .brand { font-size: 1.3rem; font-weight: 700; color: white; display: flex; align-items: center; }
     .header .brand span { color: #F59E0B; }
-    .header .nav-links a { color: #ccc; margin-left: 1.2rem; font-size: 0.9rem; }
+    .header .brand img { display: block; }
+    .header .nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0; }
+    .header .nav-links a { color: #ccc; margin-left: 1rem; font-size: 0.9rem; white-space: nowrap; }
     .header .nav-links a:hover { color: white; text-decoration: none; }
+    @media (max-width: 480px) {
+      .header { padding: 0.75rem 1rem; }
+      .header .brand { font-size: 1.1rem; }
+      .header .nav-links a { margin-left: 0.7rem; font-size: 0.82rem; }
+    }
 
     /* Container */
     .container { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
