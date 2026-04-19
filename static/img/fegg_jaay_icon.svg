@@ -1,9 +1,11 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
+    <!-- Gradient fond icône -->
     <radialGradient id="bgGrad" cx="38%" cy="32%" r="70%">
       <stop offset="0%" stop-color="#6D28D9"/>
       <stop offset="100%" stop-color="#2E0078"/>
     </radialGradient>
+    <!-- Motif géo Sénégalais subtil -->
     <pattern id="weave" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
       <rect width="28" height="28" fill="none"/>
       <line x1="14" y1="0" x2="14" y2="28" stroke="#7C3AED" stroke-width="1.2" opacity="0.35"/>
@@ -14,22 +16,43 @@
       <rect width="512" height="512" rx="108" ry="108"/>
     </clipPath>
   </defs>
+
+  <!-- Fond arrondi -->
   <rect width="512" height="512" rx="108" fill="url(#bgGrad)"/>
+  <!-- Texture tissu/panier sénégalais -->
   <rect width="512" height="512" rx="108" fill="url(#weave)" clip-path="url(#bgClip)"/>
-  <path d="M 178 248 C 178 155 334 155 334 248" fill="none" stroke="#92400E" stroke-width="30" stroke-linecap="round" opacity="0.28" transform="translate(5,7)"/>
-  <path d="M 178 248 C 178 155 334 155 334 248" fill="none" stroke="#F59E0B" stroke-width="26" stroke-linecap="round"/>
-  <path d="M 185 248 C 185 168 327 168 327 248" fill="none" stroke="#FCD34D" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- ── SAC / HANDLE ── -->
+  <!-- Ombre handle -->
+  <path d="M 178 248 C 178 155 334 155 334 248"
+        fill="none" stroke="#92400E" stroke-width="30" stroke-linecap="round"
+        opacity="0.28" transform="translate(5,7)"/>
+  <!-- Handle principal -->
+  <path d="M 178 248 C 178 155 334 155 334 248"
+        fill="none" stroke="#F59E0B" stroke-width="26" stroke-linecap="round"/>
+  <!-- Petit éclat intérieur handle -->
+  <path d="M 185 248 C 185 168 327 168 327 248"
+        fill="none" stroke="#FCD34D" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- ── CORPS DU SAC ── -->
+  <!-- Ombre sac -->
   <rect x="136" y="238" width="240" height="198" rx="22" fill="#92400E" opacity="0.22" transform="translate(6,8)"/>
+  <!-- Corps principal -->
   <rect x="136" y="238" width="240" height="198" rx="22" fill="#F59E0B"/>
+  <!-- Bande supérieure (pliure) -->
   <rect x="136" y="238" width="240" height="32" rx="22" fill="#D97706"/>
   <rect x="136" y="255" width="240" height="15" fill="#D97706"/>
+  <!-- Reflet doré sur la bande -->
   <rect x="148" y="243" width="215" height="6" rx="3" fill="#FCD34D" opacity="0.4"/>
+
+  <!-- Motif géométrique Sénégalais sur le sac (discret) -->
   <g clip-path="url(#bagClip)">
     <line x1="136" y1="298" x2="376" y2="298" stroke="#D97706" stroke-width="1.5" opacity="0.5"/>
     <line x1="136" y1="338" x2="376" y2="338" stroke="#D97706" stroke-width="1.5" opacity="0.5"/>
     <line x1="136" y1="378" x2="376" y2="378" stroke="#D97706" stroke-width="1.5" opacity="0.5"/>
     <line x1="216" y1="270" x2="216" y2="436" stroke="#D97706" stroke-width="1.5" opacity="0.5"/>
     <line x1="296" y1="270" x2="296" y2="436" stroke="#D97706" stroke-width="1.5" opacity="0.5"/>
+    <!-- Losanges aux intersections -->
     <rect x="208" y="290" width="16" height="16" rx="2" transform="rotate(45 216 298)" fill="#E08E09" opacity="0.4"/>
     <rect x="288" y="290" width="16" height="16" rx="2" transform="rotate(45 296 298)" fill="#E08E09" opacity="0.4"/>
     <rect x="208" y="330" width="16" height="16" rx="2" transform="rotate(45 216 338)" fill="#E08E09" opacity="0.4"/>
@@ -40,18 +63,30 @@
   <clipPath id="bagClip">
     <rect x="136" y="270" width="240" height="166"/>
   </clipPath>
+
+  <!-- ── BULLE MESSAGERIE (badge bottom-right) ── -->
+  <!-- Ring externe violet -->
   <circle cx="362" cy="410" r="56" fill="#2E0078"/>
   <circle cx="362" cy="410" r="48" fill="white"/>
+  <!-- Trois points de chat -->
   <circle cx="344" cy="410" r="6" fill="#4A1D96"/>
   <circle cx="362" cy="410" r="6" fill="#4A1D96"/>
   <circle cx="380" cy="410" r="6" fill="#4A1D96"/>
+  <!-- Queue de la bulle (bas-gauche) -->
   <path d="M 328 430 L 312 452 L 342 438 Z" fill="white"/>
+
+  <!-- ── ÉTOILES / ÉTINCELLES (dynamisme) ── -->
+  <!-- Étoile top-right -->
   <g transform="translate(408, 115) rotate(15)">
-    <polygon points="0,-14 3.5,-4.5 13,-4.5 5.5,2 8.5,12 0,6.5 -8.5,12 -5.5,2 -13,-4.5 -3.5,-4.5" fill="#FCD34D" opacity="0.9"/>
+    <polygon points="0,-14 3.5,-4.5 13,-4.5 5.5,2 8.5,12 0,6.5 -8.5,12 -5.5,2 -13,-4.5 -3.5,-4.5"
+             fill="#FCD34D" opacity="0.9"/>
   </g>
+  <!-- Petite étoile -->
   <g transform="translate(370, 82) rotate(-5)">
-    <polygon points="0,-8 2,-2.5 8,-2.5 3,1.5 5,7.5 0,4 -5,7.5 -3,1.5 -8,-2.5 -2,-2.5" fill="#FCD34D" opacity="0.6"/>
+    <polygon points="0,-8 2,-2.5 8,-2.5 3,1.5 5,7.5 0,4 -5,7.5 -3,1.5 -8,-2.5 -2,-2.5"
+             fill="#FCD34D" opacity="0.6"/>
   </g>
+  <!-- Étincelle petite -->
   <circle cx="440" cy="148" r="3.5" fill="#FCD34D" opacity="0.7"/>
   <circle cx="425" cy="95" r="2" fill="#FCD34D" opacity="0.5"/>
 </svg>
