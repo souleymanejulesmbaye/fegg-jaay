@@ -66,7 +66,7 @@
     <div class="field">
       <label for="telephone">Numéro WhatsApp *</label>
       <input type="tel" id="telephone" name="telephone"
-             placeholder="+221 77 123 45 67"
+             placeholder="77 123 45 67"
              value="{{ post.telephone|default:'' }}" required>
       {% if erreurs.telephone %}<div class="field-error">{{ erreurs.telephone }}</div>{% endif %}
     </div>

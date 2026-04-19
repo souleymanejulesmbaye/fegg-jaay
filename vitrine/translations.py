@@ -22,7 +22,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "label_prenom": "Votre prénom",
         "placeholder_prenom": "Ex: Moussa",
         "label_telephone": "Votre numéro WhatsApp",
-        "placeholder_telephone": "Ex: +221771234567",
+        "placeholder_telephone": "Ex: 77 123 45 67",
         "label_adresse": "Adresse de livraison",
         "placeholder_adresse": "Ex: Rue 10, Médina, Dakar",
         "label_zone": "Zone de livraison",
@@ -88,6 +88,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "aucune_commande": "Vous n'avez pas encore de commande.",
         "voir_catalogue_btn": "Voir le catalogue",
+        # --- Détail produit ---
+        "voir_detail": "Voir le produit →",
+        "retour_boutique": "← Retour à la boutique",
+        "commander_ce_produit": "Commander ce produit",
         # --- Nav ---
         "mon_compte": "Mon compte",
         # --- Statuts commande ---
@@ -109,7 +113,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "label_prenom": "Sa tur",
         "placeholder_prenom": "Misaal: Moussa",
         "label_telephone": "Sa numéro WhatsApp",
-        "placeholder_telephone": "Misaal: +221771234567",
+        "placeholder_telephone": "Misaal: 77 123 45 67",
         "label_adresse": "Fan nga dëkk",
         "placeholder_adresse": "Misaal: Rue 10, Médina, Dakar",
         "label_zone": "Périmètre bi",
@@ -172,6 +176,10 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         ),
         "aucune_commande": "Dëggaluma commande.",
         "voir_catalogue_btn": "Xool ay xët yi",
+        # --- Détail produit ---
+        "voir_detail": "Xool xët bi →",
+        "retour_boutique": "← Dellu ci boutique bi",
+        "commander_ce_produit": "Jënd xët bi",
         # --- Nav ---
         "mon_compte": "Sa kàddug",
         # --- Statuts commande ---

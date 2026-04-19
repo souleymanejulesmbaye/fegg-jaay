@@ -32,6 +32,14 @@ OTP_EXPIRY_MINUTES = 10
 logger = logging.getLogger(__name__)
 
 
+def _normaliser_telephone(telephone: str) -> str:
+    """Supprime espaces/tirets/+, ajoute l'indicatif 221 si numéro local (9 chiffres)."""
+    tel = telephone.strip().replace(" ", "").replace("-", "").replace(".", "").lstrip("+")
+    if len(tel) == 9 and tel.isdigit():
+        tel = "221" + tel
+    return tel
+
+
 def landing(request):
     """Page d'accueil publique."""
     boutiques = Boutique.objects.filter(actif=True).order_by("nom")
@@ -117,11 +125,11 @@ def passer_commande(request, slug):
     shop = get_object_or_404(Boutique, slug=slug, actif=True)
 
     prenom = request.POST.get("prenom", "").strip()
-    telephone = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "")
+    telephone_stocke = _normaliser_telephone(request.POST.get("telephone", ""))
     adresse = request.POST.get("adresse", "").strip()
     zone_id = request.POST.get("zone_livraison", "").strip()
 
-    if not telephone:
+    if not telephone_stocke:
         return redirect("vitrine:boutique", slug=slug)
 
     # Récupérer la zone de livraison choisie
@@ -131,12 +139,6 @@ def passer_commande(request, slug):
         zone = ZoneLivraison.objects.filter(pk=zone_id, boutique=shop, actif=True).first()
         if zone:
             frais_livraison = zone.frais
-
-    # Normaliser le numéro (ajouter + si absent)
-    if not telephone.startswith("+"):
-        telephone = "+" + telephone
-    # Stocker sans le + pour cohérence avec le bot WhatsApp
-    telephone_stocke = telephone.lstrip("+")
 
     # Récupérer les produits commandés
     items = []
@@ -264,14 +266,11 @@ def connexion(request, slug):
     erreur = None
 
     if request.method == "POST":
-        telephone_raw = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "")
-        if not telephone_raw:
+        telephone_stocke = _normaliser_telephone(request.POST.get("telephone", ""))
+        if not telephone_stocke:
             t_err = get_translations(get_lang(request))
             erreur = t_err["err_telephone_vide"]
         else:
-            if not telephone_raw.startswith("+"):
-                telephone_raw = "+" + telephone_raw
-            telephone_stocke = telephone_raw.lstrip("+")
 
             client, _ = Client.objects.get_or_create(
                 boutique=shop,
@@ -424,6 +423,21 @@ def soumettre_paiement(request, slug, ref):
 
     logger.info("Référence paiement soumise — commande %s, mode %s", ref, mode)
     return redirect("vitrine:confirmation", slug=slug, ref=ref)
+
+
+def produit_detail(request, slug, produit_id):
+    """Page de détail d'un produit avant de commander."""
+    shop = get_object_or_404(Boutique, slug=slug, actif=True)
+    produit = get_object_or_404(Produit, pk=produit_id, boutique=shop, actif=True)
+    zones = ZoneLivraison.objects.filter(boutique=shop, actif=True).order_by("frais", "nom")
+    lang = get_lang(request)
+    return render(request, "vitrine/produit_detail.html", {
+        "boutique": shop,
+        "produit": produit,
+        "zones": zones,
+        "lang": lang,
+        "t": get_translations(lang),
+    })
 
 
 def confirmation(request, slug, ref):

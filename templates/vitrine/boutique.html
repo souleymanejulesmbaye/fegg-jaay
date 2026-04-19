@@ -135,13 +135,15 @@
   <div class="produits-grid">
     {% for produit in produits %}
     <div class="produit-card">
-      {% if produit.photo %}
-      <img src="{{ produit.photo.url }}" alt="{{ produit.nom }}" class="produit-card-img">
-      {% else %}
-      <div class="produit-card-img-placeholder">🛒</div>
-      {% endif %}
+      <a href="{% url 'vitrine:produit_detail' slug=boutique.slug produit_id=produit.pk %}" style="display:block;">
+        {% if produit.photo %}
+        <img src="{{ produit.photo.url }}" alt="{{ produit.nom }}" class="produit-card-img">
+        {% else %}
+        <div class="produit-card-img-placeholder">🛒</div>
+        {% endif %}
+      </a>
       <div class="produit-card-body">
-      <h3>{{ produit.nom }}</h3>
+      <h3><a href="{% url 'vitrine:produit_detail' slug=boutique.slug produit_id=produit.pk %}" style="color:inherit;text-decoration:none;">{{ produit.nom }}</a></h3>
       <div class="prix">{{ produit.prix_formate }}</div>
       <div class="stock">{{ produit.stock }} {{ t.en_stock }}</div>
       <div class="qte-control">

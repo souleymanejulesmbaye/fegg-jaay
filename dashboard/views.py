@@ -55,7 +55,8 @@ def inscription(request):
 
     if request.method == "POST":
         nom_boutique = request.POST.get("nom_boutique", "").strip()
-        telephone = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "")
+        _tel_raw = request.POST.get("telephone", "").strip().replace(" ", "").replace("-", "").replace(".", "").lstrip("+")
+        telephone = ("221" + _tel_raw) if (len(_tel_raw) == 9 and _tel_raw.isdigit()) else _tel_raw
         ville = request.POST.get("ville", "Dakar").strip()
         username = request.POST.get("username", "").strip()
         password1 = request.POST.get("password1", "")
