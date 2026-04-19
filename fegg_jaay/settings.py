@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost", cast=Csv())
-ALLOWED_HOSTS += ["healthcheck.railway.app", ".up.railway.app", ".onrender.com"]
+ALLOWED_HOSTS += ["healthcheck.railway.app", ".up.railway.app", ".onrender.com", "127.0.0.1", "localhost"]
 
 # En développement, autoriser tous les domaines ngrok
 if DEBUG:
