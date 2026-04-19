@@ -189,6 +189,17 @@ def _traiter_message_sync(msg_data: dict):
         logger.info("Message %s déjà traité — ignoré.", wa_message_id)
         return
 
+    # ── Routing commerçant — dashboard WhatsApp ──────────────────────────
+    if boutique.proprietaire_tel:
+        tel_norm = client_tel.lstrip("+")
+        prop_norm = boutique.proprietaire_tel.lstrip("+")
+        if tel_norm == prop_norm:
+            from .dashboard_wa import traiter_message_commercant
+            reponse = traiter_message_commercant(boutique, contenu)
+            envoyer_message_texte(boutique, client_tel, reponse)
+            logger.info("Dashboard commerçant — boutique=%s msg=%s...", boutique.nom, contenu[:40])
+            return
+
     client, created = Client.objects.get_or_create(
         boutique=boutique,
         telephone=client_tel,
