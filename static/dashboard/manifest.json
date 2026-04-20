@@ -1,0 +1,38 @@
+{
+  "name": "Fëgg Jaay Dashboard",
+  "short_name": "FeggJaay",
+  "description": "Gérez vos commandes et votre boutique",
+  "start_url": "/dashboard/",
+  "scope": "/dashboard/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#4A1D96",
+  "background_color": "#f5f5f5",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/static/img/fegg_jaay_icon_transparent.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/img/fegg_jaay_icon_transparent.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Commandes",
+      "url": "/dashboard/commandes/",
+      "description": "Voir les commandes en attente"
+    },
+    {
+      "name": "Produits",
+      "url": "/dashboard/produits/",
+      "description": "Gérer les produits"
+    }
+  ]
+}
