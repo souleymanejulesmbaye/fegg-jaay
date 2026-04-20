@@ -15,66 +15,143 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #f5f5f5; color: #333; }
+           background: #f5f5f5; color: #333; padding-bottom: 70px; }
     a { color: #F59E0B; text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* Navigation */
-    .navbar {
-      background: #4A1D96; color: white; padding: 0.75rem 1.5rem;
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+    /* ── Top header ─────────────────────────────────────────────── */
+    .topbar {
+      background: #4A1D96; color: white;
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
     }
-    .navbar .brand { font-size: 1.2rem; font-weight: 700; color: white; }
-    .navbar nav a { color: #ccc; margin-left: 1.5rem; font-size: 0.9rem; }
-    .navbar nav a:hover { color: white; text-decoration: none; }
-    .navbar nav a.active { color: #F59E0B; font-weight: 600; }
-    /* Sélecteur boutique */
-    .boutique-switcher { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #ccc; }
-    .boutique-switcher select {
-      background: #5B21B6; color: white; border: 1px solid #F59E0B;
-      border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; cursor: pointer;
+    .topbar .brand { font-size: 1.15rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 0.4rem; }
+    .topbar .brand span { color: #F59E0B; }
+    .topbar .shop-name { font-size: 0.8rem; color: #ccc; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Bottom nav (mobile) ─────────────────────────────────────── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: white; border-top: 1px solid #e5e7eb;
+      display: flex; justify-content: space-around; align-items: stretch;
+      height: 60px;
+      box-shadow: 0 -2px 10px rgba(0,0,0,.08);
     }
-    .boutique-switcher select option { background: #4A1D96; }
+    .bottom-nav a {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex: 1; gap: 2px; color: #888; font-size: 0.65rem; font-weight: 500;
+      text-decoration: none; padding: 6px 4px; transition: color .15s;
+    }
+    .bottom-nav a svg { width: 22px; height: 22px; }
+    .bottom-nav a.active { color: #4A1D96; }
+    .bottom-nav a:hover { color: #4A1D96; text-decoration: none; }
+    .bottom-nav a .badge-dot {
+      position: relative;
+    }
+    .bottom-nav a .badge-dot::after {
+      content: ''; position: absolute; top: -2px; right: -4px;
+      width: 8px; height: 8px; background: #e74c3c; border-radius: 50%;
+      border: 1px solid white;
+    }
 
-    /* Layout */
-    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    /* ── Drawer menu ─────────────────────────────────────────────── */
+    .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 300; }
+    .drawer-overlay.open { display: block; }
+    .drawer {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 400;
+      background: white; border-radius: 16px 16px 0 0;
+      padding: 1.5rem 1rem 5rem;
+      transform: translateY(100%); transition: transform .25s ease;
+    }
+    .drawer.open { transform: translateY(0); }
+    .drawer-handle { width: 40px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 1.2rem; }
+    .drawer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .drawer-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.75rem 1rem; border-radius: 10px;
+      background: #f5f5f5; color: #333; font-size: 0.9rem; font-weight: 500;
+      text-decoration: none;
+    }
+    .drawer-item:hover { background: #ede9fe; color: #4A1D96; text-decoration: none; }
+    .drawer-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .drawer-close { display: block; margin-top: 1rem; text-align: center; color: #888; font-size: 0.85rem; cursor: pointer; }
 
-    /* Cards */
+    /* ── Desktop nav (hidden on mobile) ────────────────────────── */
+    .desktop-nav {
+      background: #4A1D96;
+      display: none;
+    }
+    .desktop-nav nav {
+      max-width: 1100px; margin: 0 auto; padding: 0 1rem;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem;
+    }
+    .desktop-nav nav a {
+      color: #ccc; padding: 0.5rem 0.75rem; font-size: 0.85rem; border-radius: 4px;
+    }
+    .desktop-nav nav a:hover { color: white; text-decoration: none; background: rgba(255,255,255,.1); }
+    .desktop-nav nav a.active { color: #F59E0B; }
+
+    @media (min-width: 768px) {
+      body { padding-bottom: 0; }
+      .bottom-nav { display: none; }
+      .desktop-nav { display: block; }
+      .topbar .shop-name { display: none; }
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+
+    /* ── Cards ──────────────────────────────────────────────────── */
     .card {
-      background: white; border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 1.5rem; margin-bottom: 1.5rem;
+      background: white; border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 1.2rem; margin-bottom: 1rem;
     }
-    .card-title { font-size: 1rem; font-weight: 600; color: #555; margin-bottom: 1rem; }
+    .card-title { font-size: 0.9rem; font-weight: 600; color: #555; margin-bottom: 0.8rem; }
 
-    /* Stats grid */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+    /* ── Stats grid ─────────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    @media (min-width: 600px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (min-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    }
     .stat-card {
-      background: white; border-radius: 8px; padding: 1.2rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,.1); text-align: center;
+      background: white; border-radius: 12px; padding: 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08); text-align: center;
     }
-    .stat-number { font-size: 2rem; font-weight: 700; color: #4A1D96; }
-    .stat-label { font-size: 0.8rem; color: #777; margin-top: 0.25rem; }
+    .stat-number { font-size: 1.8rem; font-weight: 700; color: #4A1D96; }
+    .stat-label { font-size: 0.72rem; color: #777; margin-top: 0.2rem; }
 
-    /* Buttons */
+    /* ── Buttons ─────────────────────────────────────────────────── */
     .btn {
-      display: inline-block; padding: 0.5rem 1.2rem; border-radius: 5px;
-      font-size: 0.9rem; cursor: pointer; border: none; font-weight: 500;
+      display: inline-block; padding: 0.55rem 1.2rem; border-radius: 8px;
+      font-size: 0.9rem; cursor: pointer; border: none; font-weight: 600;
+      text-decoration: none;
     }
     .btn-primary { background: #F59E0B; color: white; }
-    .btn-primary:hover { background: #D97706; }
+    .btn-primary:hover { background: #D97706; text-decoration: none; }
     .btn-danger { background: #e74c3c; color: white; }
     .btn-secondary { background: #eee; color: #333; }
+    .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.8rem; }
 
-    /* Table */
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #eee; }
-    th { font-size: 0.8rem; text-transform: uppercase; color: #888; background: #fafafa; }
-    tr:hover td { background: #f9f9f9; }
+    /* ── Table wrapper (scroll horizontal) ──────────────────────── */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; min-width: 400px; }
+    th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid #f0f0f0; }
+    th { font-size: 0.72rem; text-transform: uppercase; color: #888; background: #fafafa; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafef8; }
 
-    /* Badges statut */
+    /* ── Badges ──────────────────────────────────────────────────── */
     .badge {
       display: inline-block; padding: 0.2rem 0.6rem;
-      border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      border-radius: 20px; font-size: 0.72rem; font-weight: 600; white-space: nowrap;
     }
     .badge-attente { background: #fff3cd; color: #856404; }
     .badge-payee { background: #cce5ff; color: #004085; }
@@ -82,62 +159,87 @@
     .badge-livree { background: #d4edda; color: #155724; }
     .badge-annulee { background: #f8d7da; color: #721c24; }
 
-    /* Messages */
+    /* ── Messages flash ──────────────────────────────────────────── */
     .messages { list-style: none; margin-bottom: 1rem; }
-    .messages li {
-      padding: 0.75rem 1rem; border-radius: 5px; margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-    }
+    .messages li { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.9rem; }
     .messages .success { background: #d4edda; color: #155724; }
     .messages .error { background: #f8d7da; color: #721c24; }
     .messages .warning { background: #fff3cd; color: #856404; }
 
-    /* Alerte stock */
+    /* ── Alerte stock ────────────────────────────────────────────── */
     .alert-stock {
       background: #fff3cd; border: 1px solid #ffc107;
-      border-radius: 5px; padding: 0.75rem 1rem; font-size: 0.9rem;
+      border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.88rem;
+    }
+
+    /* ── Boutique switcher (desktop) ─────────────────────────────── */
+    .boutique-switcher { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #ccc; }
+    .boutique-switcher select {
+      background: #5B21B6; color: white; border: 1px solid #F59E0B;
+      border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.85rem; cursor: pointer;
     }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
 
-<div class="navbar">
-  <span class="brand">
-    <img src="{% static 'img/fegg_jaay_icon_transparent.png' %}" alt="" style="height:32px;width:32px;border-radius:7px;vertical-align:middle;margin-right:0.4rem;">
-    <span style="vertical-align:middle;">Fëgg<span style="color:#F59E0B;">Jaay</span></span>
-  </span>
+<!-- ── Top bar ─────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="brand">
+    <img src="{% static 'img/fegg_jaay_icon_transparent.png' %}" alt="" style="height:28px;width:28px;border-radius:6px;">
+    Fëgg<span>Jaay</span>
+  </div>
   {% if user.is_authenticated %}
-  {% if mes_boutiques|length > 1 %}
-  <form method="post" action="{% url 'dashboard:changer_boutique' %}" class="boutique-switcher">
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ request.path }}">
-    <label for="boutique-select">Boutique :</label>
-    <select id="boutique-select" name="boutique_id" onchange="this.form.submit()">
-      {% for b in mes_boutiques %}
-      <option value="{{ b.pk }}" {% if boutique_active and b.pk == boutique_active.pk %}selected{% endif %}>{{ b.nom }}</option>
-      {% endfor %}
-    </select>
-  </form>
-  {% elif boutique_active %}
-  <span style="color:#aaa;font-size:0.85rem;">{{ boutique_active.nom }}</span>
-  {% endif %}
-  <nav>
-    <a href="{% url 'dashboard:accueil' %}">Accueil</a>
-    <a href="{% url 'dashboard:stats' %}">Stats</a>
-    <a href="{% url 'dashboard:liste_produits' %}">Produits</a>
-    <a href="{% url 'dashboard:liste_commandes' %}">Commandes</a>
-    <a href="{% url 'dashboard:liste_clients' %}">Clients</a>
-    <a href="{% url 'dashboard:test_bot' %}">Test Bot</a>
-    <a href="{% url 'dashboard:zones_livraison' %}">Livraisons</a>
-    <a href="{% url 'dashboard:config_boutique' %}">Config</a>
-    <a href="{% url 'dashboard:creer_boutique' %}">+ Boutique</a>
-    {% if user.is_superuser %}<a href="{% url 'dashboard:superadmin_accueil' %}" style="color:#ffd700;">⚙ Super Admin</a>{% endif %}
-    <a href="{% url 'dashboard:logout' %}">Déconnexion</a>
-  </nav>
+    {% if boutique_active %}
+    <span class="shop-name">{{ boutique_active.nom }}</span>
+    {% endif %}
+    {% if mes_boutiques|length > 1 %}
+    <form method="post" action="{% url 'dashboard:changer_boutique' %}" class="boutique-switcher" style="display:none;" id="switcher-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <select name="boutique_id" onchange="this.form.submit()">
+        {% for b in mes_boutiques %}
+        <option value="{{ b.pk }}" {% if boutique_active and b.pk == boutique_active.pk %}selected{% endif %}>{{ b.nom }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% endif %}
   {% endif %}
 </div>
 
+<!-- ── Desktop nav ─────────────────────────────────────────────── -->
+{% if user.is_authenticated %}
+<div class="desktop-nav">
+  <nav>
+    {% if mes_boutiques|length > 1 %}
+    <form method="post" action="{% url 'dashboard:changer_boutique' %}" class="boutique-switcher" style="margin-right:1rem;">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <select name="boutique_id" onchange="this.form.submit()">
+        {% for b in mes_boutiques %}
+        <option value="{{ b.pk }}" {% if boutique_active and b.pk == boutique_active.pk %}selected{% endif %}>{{ b.nom }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% elif boutique_active %}
+    <span style="color:#aaa;font-size:0.85rem;margin-right:1rem;">{{ boutique_active.nom }}</span>
+    {% endif %}
+    <a href="{% url 'dashboard:accueil' %}">Accueil</a>
+    <a href="{% url 'dashboard:liste_commandes' %}">Commandes</a>
+    <a href="{% url 'dashboard:liste_produits' %}">Produits</a>
+    <a href="{% url 'dashboard:liste_clients' %}">Clients</a>
+    <a href="{% url 'dashboard:stats' %}">Stats</a>
+    <a href="{% url 'dashboard:zones_livraison' %}">Livraisons</a>
+    <a href="{% url 'dashboard:config_boutique' %}">Config</a>
+    <a href="{% url 'dashboard:creer_boutique' %}">+ Boutique</a>
+    <a href="{% url 'dashboard:test_bot' %}">Test Bot</a>
+    {% if user.is_superuser %}<a href="{% url 'dashboard:superadmin_accueil' %}" style="color:#ffd700;">⚙ Admin</a>{% endif %}
+    <a href="{% url 'dashboard:logout' %}">Déconnexion</a>
+  </nav>
+</div>
+{% endif %}
+
+<!-- ── Contenu ─────────────────────────────────────────────────── -->
 <div class="container">
   {% if messages %}
   <ul class="messages">
@@ -149,6 +251,92 @@
 
   {% block content %}{% endblock %}
 </div>
+
+<!-- ── Bottom nav (mobile) ────────────────────────────────────── -->
+{% if user.is_authenticated %}
+<nav class="bottom-nav">
+  <a href="{% url 'dashboard:accueil' %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    Accueil
+  </a>
+  <a href="{% url 'dashboard:liste_commandes' %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+    </svg>
+    Commandes
+  </a>
+  <a href="{% url 'dashboard:liste_produits' %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+    Produits
+  </a>
+  <a href="{% url 'dashboard:liste_clients' %}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+    Clients
+  </a>
+  <a href="#" id="menu-btn" onclick="toggleDrawer(event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+    Menu
+  </a>
+</nav>
+
+<!-- Drawer menu -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-grid">
+    <a href="{% url 'dashboard:stats' %}" class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Stats
+    </a>
+    <a href="{% url 'dashboard:zones_livraison' %}" class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 00-8 8c0 5.4 7.4 12.3 7.7 12.6a.5.5 0 00.6 0C12.6 22.3 20 15.4 20 10a8 8 0 00-8-8z"/></svg>
+      Livraisons
+    </a>
+    <a href="{% url 'dashboard:config_boutique' %}" class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Config
+    </a>
+    <a href="{% url 'dashboard:creer_boutique' %}" class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      + Boutique
+    </a>
+    <a href="{% url 'dashboard:test_bot' %}" class="drawer-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Test Bot
+    </a>
+    {% if user.is_superuser %}
+    <a href="{% url 'dashboard:superadmin_accueil' %}" class="drawer-item" style="color:#4A1D96;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Super Admin
+    </a>
+    {% endif %}
+    <a href="{% url 'dashboard:logout' %}" class="drawer-item" style="color:#e74c3c;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Déconnexion
+    </a>
+  </div>
+</div>
+
+<script>
+function toggleDrawer(e) {
+  e.preventDefault();
+  document.getElementById('drawer').classList.toggle('open');
+  document.getElementById('drawer-overlay').classList.toggle('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+</script>
+{% endif %}
 
 {% block extra_js %}{% endblock %}
 
@@ -170,12 +358,10 @@
   async function subscribePush() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     if (!VAPID_PUBLIC_KEY) return;
-
     try {
       const reg = await navigator.serviceWorker.register("/static/dashboard/sw.js", { scope: "/dashboard/" });
       const permission = await Notification.requestPermission();
       if (permission !== "granted") return;
-
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
         sub = await reg.pushManager.subscribe({
@@ -183,7 +369,6 @@
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
       }
-
       await fetch(SUBSCRIBE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
