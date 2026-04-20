@@ -440,6 +440,14 @@ def produit_detail(request, slug, produit_id):
     })
 
 
+def privacy(request):
+    return render(request, "vitrine/privacy.html")
+
+
+def terms(request):
+    return render(request, "vitrine/terms.html")
+
+
 def confirmation(request, slug, ref):
     """Page de confirmation après commande."""
     shop = get_object_or_404(Boutique, slug=slug, actif=True)

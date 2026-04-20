@@ -7,6 +7,8 @@ app_name = "vitrine"
 
 urlpatterns = [
     path("", views.landing, name="landing"),
+    path("privacy/", views.privacy, name="privacy"),
+    path("terms/", views.terms, name="terms"),
     path("marche/", views.marche, name="marche"),
     path("boutique/<slug:slug>/", views.boutique, name="boutique"),
     path("boutique/<slug:slug>/produit/<int:produit_id>/", views.produit_detail, name="produit_detail"),
