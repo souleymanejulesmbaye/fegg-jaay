@@ -178,6 +178,8 @@ ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
 WA_WEBHOOK_VERIFY_TOKEN = config("WA_WEBHOOK_VERIFY_TOKEN", default="fegg_verify")
 WA_APP_SECRET = config("WA_APP_SECRET", default="")
+WA_PLATFORM_TOKEN = config("WA_PLATFORM_TOKEN", default="")
+WA_PLATFORM_PHONE_NUMBER_ID = config("WA_PLATFORM_PHONE_NUMBER_ID", default="")
 
 # ─── Twilio WhatsApp ───────────────────────────────────────────────────────────
 TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")

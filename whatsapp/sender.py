@@ -32,6 +32,17 @@ def _normaliser_telephone(telephone: str) -> str:
     return f"whatsapp:{t}"
 
 
+def _get_meta_credentials(boutique: Boutique):
+    """Retourne (phone_id, token) : boutique en priorité, sinon credentials plateforme."""
+    if boutique.wa_phone_id and boutique.wa_token:
+        return boutique.wa_phone_id, boutique.wa_token
+    platform_token = getattr(settings, "WA_PLATFORM_TOKEN", "")
+    platform_phone_id = getattr(settings, "WA_PLATFORM_PHONE_NUMBER_ID", "")
+    if platform_token and platform_phone_id:
+        return platform_phone_id, platform_token
+    return None, None
+
+
 def envoyer_message_texte(
     boutique: Boutique,
     telephone_destinataire: str,
@@ -39,18 +50,19 @@ def envoyer_message_texte(
 ) -> bool:
     """
     Envoie un message texte WhatsApp.
-    Utilise Meta API si la boutique a wa_phone_id + wa_token, sinon Twilio sandbox.
+    Utilise Meta API (boutique ou plateforme), sinon Twilio sandbox.
     """
-    if boutique.wa_phone_id and boutique.wa_token:
-        return _envoyer_meta(boutique, telephone_destinataire, texte)
+    phone_id, token = _get_meta_credentials(boutique)
+    if phone_id and token:
+        return _envoyer_meta_avec(phone_id, token, telephone_destinataire, texte, boutique.nom)
     return _envoyer_twilio(boutique, telephone_destinataire, texte)
 
 
-def _envoyer_meta(boutique: Boutique, telephone_destinataire: str, texte: str) -> bool:
-    """Envoie via Meta WhatsApp Business API avec les credentials de la boutique."""
+def _envoyer_meta_avec(phone_id: str, token: str, telephone_destinataire: str, texte: str, nom_boutique: str = "") -> bool:
+    """Envoie via Meta WhatsApp Business API."""
     t = telephone_destinataire.strip().replace("+", "").replace(" ", "")
-    url = f"https://graph.facebook.com/v18.0/{boutique.wa_phone_id}/messages"
-    headers = {"Authorization": f"Bearer {boutique.wa_token}", "Content-Type": "application/json"}
+    url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {
         "messaging_product": "whatsapp",
         "to": t,
@@ -61,10 +73,10 @@ def _envoyer_meta(boutique: Boutique, telephone_destinataire: str, texte: str) -
         with httpx.Client(timeout=10.0) as client:
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
-            logger.info("Meta: message envoyé à %s (boutique %s)", t, boutique.nom)
+            logger.info("Meta: message envoyé à %s (boutique %s)", t, nom_boutique)
             return True
     except httpx.TimeoutException:
-        logger.error("Meta: timeout envoi à %s (boutique %s)", t, boutique.nom)
+        logger.error("Meta: timeout envoi à %s (boutique %s)", t, nom_boutique)
     except httpx.HTTPStatusError as exc:
         logger.error("Meta: erreur HTTP %d à %s : %s", exc.response.status_code, t, exc.response.text[:300])
     except Exception as exc:
