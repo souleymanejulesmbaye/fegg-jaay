@@ -19,30 +19,30 @@
 
 ### 2️⃣ Configuration Numéros (30 minutes - 7 min par numéro)
 
-#### Numéro 1 : SALMON SHOP - 221767600283
+#### Numéro 1 : SALMON SHOP - EXEMPLE : 221771234567
 ```
 1. Console Twilio → Messaging → Senders → WhatsApp Senders
 2. "Create WhatsApp Sender" → "Use a Twilio number"
-3. Number : 221767600283
+3. Number : 221771234567 (EXEMPLE - utilisez vos vrais numéros)
 4. Country : Sénégal (+221)
 5. Business Profile : SALMON SHOP
 6. Webhook : https://VOTREDOMAINE.com/whatsapp/webhook/
 7. Submit
 ```
 
-#### Numéro 2 : TASH PRESTIGE - 221776826221
+#### Numéro 2 : TASH PRESTIGE - EXEMPLE : 221777654321
 ```
-Mêmes étapes + Number : 221776826221 + Name : TASH PRESTIGE
-```
-
-#### Numéro 3 : TASH PRESTIGE 2 - 772000003
-```
-Mêmes étapes + Number : 772000003 + Name : TASH PRESTIGE 2
+Mêmes étapes + Number : 221777654321 (EXEMPLE) + Name : TASH PRESTIGE
 ```
 
-#### Numéro 4 : TERANGA SHOP - +14155238886
+#### Numéro 3 : TASH PRESTIGE 2 - EXEMPLE : 221778901234
 ```
-Mêmes étapes + Number : +14155238886 + Name : TERANGA SHOP
+Mêmes étapes + Number : 221778901234 (EXEMPLE) + Name : TASH PRESTIGE 2
+```
+
+#### Numéro 4 : TERANGA SHOP - EXEMPLE : 221779876543
+```
+Mêmes étapes + Number : 221779876543 (EXEMPLE) + Name : TERANGA SHOP
 ```
 
 ### 3️⃣ Webhook Production (5 minutes)
@@ -69,10 +69,10 @@ docker-compose restart web worker
 
 ### 6️⃣ Tests Finaux (5 minutes)
 ```
-1. 221767600283 → "salut salmon shop"
-2. 221776826221 → "bonjour tash prestige"
-3. 772000003 → "je veux commander"
-4. +14155238886 → "catalogue teranga"
+1. VOTRE NUMÉRO 1 → "salut salmon shop"
+2. VOTRE NUMÉRO 2 → "bonjour tash prestige"
+3. VOTRE NUMÉRO 3 → "je veux commander"
+4. VOTRE NUMÉRO 4 → "catalogue teranga"
 ```
 
 ---
@@ -119,10 +119,10 @@ docker-compose restart web worker
 
 ### Messages clients finaux
 ```
-🏪 SALMON SHOP → 📱 221767600283
-🏪 TASH PRESTIGE → 📱 221776826221
-🏪 TASH PRESTIGE 2 → 📱 772000003
-🏪 TERANGA SHOP → 📱 +14155238886
+🏪 SALMON SHOP → 📱 VOTRE NUMÉRO 1
+🏪 TASH PRESTIGE → 📱 VOTRE NUMÉRO 2
+🏪 TASH PRESTIGE 2 → 📱 VOTRE NUMÉRO 3
+🏪 TERANGA SHOP → 📱 VOTRE NUMÉRO 4
 ```
 
 ---
