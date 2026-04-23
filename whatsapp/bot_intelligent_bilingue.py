@@ -97,6 +97,10 @@ class BotIntelligentBilingue:
                 'fr': [r'prix', r'coût', r'combien', r'cher', r'argent'],
                 'wo': [r'prix', r'xool', r'jombon', r'wër', r'argent']
             },
+            'paiement': {
+                'fr': [r'payer', r'paiement', r'confirmer', r'envoyé', r'wave', r'orange money', r'om'],
+                'wo': [r'payer', r'confirme', r'envoyé', r'bayi', r'wave', r'orange money']
+            },
             'salutation': {
                 'fr': [r'salut', r'bonjour', r'bonsoir', r'coucou', r'yo'],
                 'wo': [r'salam', r'nga', r'nga', r'asalam', r'yo']
@@ -211,6 +215,7 @@ class BotIntelligentBilingue:
                 'commande': f"Kay {boutique.nom}, maa ngi jëm ñu. Mbay nañu lu nge soxla. Loolu nge wër?",
                 'catalogue': f"{boutique.nom} - Japp nañu yu wóor. Nanga jàng wone liggéey bi?",
                 'prix': f"{boutique.nom} - Xool nañu yu wóor. Nanga xool japp bi?",
+                'paiement': self._generer_instructions_paiement_wolof(boutique),
                 'general': f"{boutique.nom} - Maa ngi jëm ñu. Nanga def? Maa leen jox liggéey."
             }
         else:  # français
@@ -219,8 +224,41 @@ class BotIntelligentBilingue:
                 'commande': f"Bienvenue chez {boutique.nom} ! Je suis là pour prendre votre commande. Que désirez-vous ?",
                 'catalogue': f"{boutique.nom} - Nous avons d'excellents produits. Souhaitez-vous voir notre catalogue ?",
                 'prix': f"{boutique.nom} - Nos prix sont très abordables. Quel article vous intéresse ?",
+                'paiement': self._generer_instructions_paiement_francais(boutique),
                 'general': f"Bienvenue chez {boutique.nom} ! Comment puis-je vous aider aujourd'hui ?"
             }
+    
+    def _generer_instructions_paiement_francais(self, boutique: Boutique) -> str:
+        """Génère les instructions de paiement en français."""
+        return (
+            f"💳 **Paiement sécurisé chez {boutique.nom}**\n\n"
+            "🌊 **Wave Money** :\n"
+            f"• Numéro : {boutique.telephone_wa or '221767600283'}\n"
+            "• Montant : [calculé automatiquement]\n"
+            "• Référence : CMD-2024-001\n\n"
+            "📱 **Orange Money** :\n"
+            f"• Numéro : {boutique.telephone_wa or '221767600283'}\n"
+            "• Montant : [calculé automatiquement]\n"
+            "• Référence : CMD-2024-001\n\n"
+            "✅ Envoyez 'paiement envoyé' après le transfert\n"
+            "🔍 Nous vérifions et confirmons automatiquement"
+        )
+    
+    def _generer_instructions_paiement_wolof(self, boutique: Boutique) -> str:
+        """Génère les instructions de paiement en wolof."""
+        return (
+            f"💳 **Paiement bu {boutique.nom}**\n\n"
+            "🌊 **Wave Money** :\n"
+            f"• Numero : {boutique.telephone_wa or '221767600283'}\n"
+            "• Xool : [calculé automatiquement]\n"
+            "• Reference : CMD-2024-001\n\n"
+            "📱 **Orange Money** :\n"
+            f"• Numero : {boutique.telephone_wa or '221767600283'}\n"
+            "• Xool : [calculé automatiquement]\n"
+            "• Reference : CMD-2024-001\n\n"
+            "✅ Wax 'paiement envoyé' bayi ngir jàpp\n"
+            "🔍 Nu seetee ak nangu ci otomatik"
+        )
     
     def _reponse_aucune_boutique(self, langue: str) -> str:
         """Réponse quand aucune boutique n'est détectée."""

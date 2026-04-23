@@ -20,6 +20,7 @@ from django.views.decorators.http import require_http_methods
 
 from .routing_intelligent import detecter_boutique_dans_message
 from .bot_intelligent_bilingue import traiter_message_intelligent
+from .paiement_mobile import traiter_demande_paiement, confirmer_paiement_client
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +208,42 @@ def _traiter_message_sync(msg_data: dict):
     if boutique.telephone_wa == "221767600283":
         # Bot intelligent bilingue - détection automatique et réponse intelligente
         boutique_ciblee, reponse_intelligente = traiter_message_intelligent(contenu)
+        
+        # Vérifier si c'est une demande de paiement
+        if any(mot in contenu.lower() for mot in ['payer', 'paiement', 'wave', 'orange money', 'om']):
+            logger.info(f"💳 Demande de paiement détectée: {contenu[:30]}...")
+            
+            # Créer/trouver le client
+            langue = "wolof" if any(mot in contenu.lower() for mot in ["maa", "dama", "nga", "salam", "jang"]) else "fr"
+            client, created = Client.objects.get_or_create(
+                boutique=boutique,
+                telephone=client_tel,
+                defaults={"langue_preferee": langue},
+            )
+            
+            # Traiter la demande de paiement
+            instructions_paiement = traiter_demande_paiement(contenu, boutique, client_tel, 10000)  # Montant par défaut
+            if instructions_paiement:
+                envoyer_message_texte(boutique, client_tel, instructions_paiement)
+                return
+        
+        # Vérifier si c'est une confirmation de paiement
+        if any(mot in contenu.lower() for mot in ['paiement envoyé', 'envoyé', 'confirmé', 'bayi']):
+            logger.info(f"✅ Confirmation de paiement détectée: {contenu[:30]}...")
+            
+            # Créer/trouver le client
+            langue = "wolof" if any(mot in contenu.lower() for mot in ["maa", "dama", "nga", "salam", "jang"]) else "fr"
+            client, created = Client.objects.get_or_create(
+                boutique=boutique,
+                telephone=client_tel,
+                defaults={"langue_preferee": langue},
+            )
+            
+            # Confirmer le paiement
+            confirmation = confirmer_paiement_client(contenu, boutique, client_tel)
+            if confirmation:
+                envoyer_message_texte(boutique, client_tel, confirmation)
+                return
         
         if boutique_ciblee and boutique_ciblee.id != boutique.id:
             # Router vers la boutique détectée avec réponse intelligente
