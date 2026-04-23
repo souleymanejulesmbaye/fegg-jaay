@@ -19,6 +19,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .routing_intelligent import detecter_boutique_dans_message
+from .bot_intelligent_bilingue import traiter_message_intelligent
 
 logger = logging.getLogger(__name__)
 
@@ -202,32 +203,46 @@ def _traiter_message_sync(msg_data: dict):
             logger.info("Dashboard commerçant — boutique=%s msg=%s...", boutique.nom, contenu[:40])
             return
 
-    # ── Routing intelligent pour numéro partagé 221767600283 ──────────────────
+    # ── Bot intelligent bilingue pour numéro 221767600283 (Twilio Sandbox) ───────
     if boutique.telephone_wa == "221767600283":
-        # Numéro partagé - routing intelligent par détection de boutique
-        boutique_ciblee = detecter_boutique_dans_message(contenu)
+        # Bot intelligent bilingue - détection automatique et réponse intelligente
+        boutique_ciblee, reponse_intelligente = traiter_message_intelligent(contenu)
         
         if boutique_ciblee and boutique_ciblee.id != boutique.id:
-            # Router vers la boutique détectée
+            # Router vers la boutique détectée avec réponse intelligente
             from .bot_engine import traiter_message_client
             logger.info(
-                "Routing partagé: %s → %s (message: %s...)",
+                "🤖 Bot intelligent: %s → %s (message: %s...)",
                 boutique.nom, boutique_ciblee.nom, contenu[:30]
             )
             
             # Créer/trouver le client pour la boutique cible
+            langue = "wolof" if any(mot in contenu.lower() for mot in ["maa", "dama", "nga", "salam", "jang"]) else "fr"
             client, created = Client.objects.get_or_create(
                 boutique=boutique_ciblee,
                 telephone=client_tel,
-                defaults={"langue_preferee": "fr"},
+                defaults={"langue_preferee": langue},
             )
             
-            # Traiter le message avec la boutique cible
-            reponse = traiter_message_client(boutique_ciblee, client, contenu, type_msg, wa_message_id)
+            # Envoyer la réponse intelligente immédiatement
+            if reponse_intelligente:
+                envoyer_message_texte(boutique_ciblee, client_tel, reponse_intelligente)
             
-            # Envoyer la réponse depuis la boutique cible
-            if reponse:
-                envoyer_message_texte(boutique_ciblee, client_tel, reponse)
+            # Traiter le message avec la boutique cible pour plus de détails
+            reponse_detaillee = traiter_message_client(boutique_ciblee, client, contenu, type_msg, wa_message_id)
+            
+            # Envoyer la réponse détaillée si différente de la réponse intelligente
+            if reponse_detaillee and reponse_detaillee != reponse_intelligente:
+                envoyer_message_texte(boutique_ciblee, client_tel, reponse_detaillee)
+            return
+        
+        elif reponse_intelligente:
+            # Envoyer la réponse intelligente même si aucune boutique spécifique détectée
+            logger.info(
+                "🤖 Bot intelligent: réponse générale pour %s (message: %s...)",
+                client_tel, contenu[:30]
+            )
+            envoyer_message_texte(boutique, client_tel, reponse_intelligente)
             return
 
     client, created = Client.objects.get_or_create(
