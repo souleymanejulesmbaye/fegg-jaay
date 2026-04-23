@@ -18,10 +18,6 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .routing_intelligent import detecter_boutique_dans_message
-from .bot_intelligent_bilingue import traiter_message_intelligent
-from .paiement_mobile import traiter_demande_paiement, confirmer_paiement_client
-
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +64,6 @@ def _recevoir_message(request):
 # ─── Provider Meta ────────────────────────────────────────────────────────────
 
 def _recevoir_meta(payload: dict):
-    """Traite les messages entrants depuis Meta WhatsApp Business API."""
     try:
         for entry in payload.get("entry", []):
             for change in entry.get("changes", []):
@@ -97,15 +92,14 @@ def _recevoir_meta(payload: dict):
                     phone_number_id, from_number, contenu[:50],
                 )
 
-                msg_data = {
+                _traiter_message_sync({
                     "provider": "meta",
                     "phone_number_id": phone_number_id,
                     "client_telephone": from_number,
                     "wa_message_id": wa_message_id,
                     "type_message": msg_type,
                     "contenu": contenu,
-                }
-                _traiter_message_sync(msg_data)
+                })
 
     except Exception as exc:
         logger.exception("Erreur traitement webhook Meta : %s", exc)
@@ -116,7 +110,6 @@ def _recevoir_meta(payload: dict):
 # ─── Provider Twilio ──────────────────────────────────────────────────────────
 
 def _recevoir_twilio(request):
-    """Traite les messages entrants depuis Twilio WhatsApp Sandbox."""
     from_number = request.POST.get("From", "")
     to_number = request.POST.get("To", "")
     body = request.POST.get("Body", "")
@@ -143,15 +136,14 @@ def _recevoir_twilio(request):
         from_number, to_number, body[:50],
     )
 
-    msg_data = {
+    _traiter_message_sync({
         "provider": "twilio",
         "boutique_telephone_wa": boutique_tel,
         "client_telephone": client_tel,
         "wa_message_id": message_sid,
         "type_message": type_msg,
         "contenu": contenu,
-    }
-    _traiter_message_sync(msg_data)
+    })
     return HttpResponse("OK", status=200)
 
 
@@ -162,8 +154,8 @@ def _traiter_message_sync(msg_data: dict):
     from .bot_engine import traiter_message
     from .sender import envoyer_message_texte, envoyer_message_bienvenue
 
-    provider = msg_data.get("provider", "twilio")
-    client_tel = msg_data.get("client_telephone", "")
+    provider = msg_data["provider"]
+    client_tel = msg_data["client_telephone"]
     wa_message_id = msg_data.get("wa_message_id", "")
     type_msg = msg_data.get("type_message", "text")
     contenu = msg_data.get("contenu", "")
@@ -177,7 +169,8 @@ def _traiter_message_sync(msg_data: dict):
             logger.warning("Boutique introuvable pour phone_number_id='%s'.", phone_number_id)
             return
     else:
-        # Twilio sandbox : To = +14155238886, pas le numéro de la boutique
+        # Twilio sandbox : le numéro To est +14155238886, pas celui de la boutique.
+        # On prend la première boutique active (sandbox = une boutique de test).
         boutique_tel = msg_data.get("boutique_telephone_wa", "")
         try:
             boutique = Boutique.objects.get(telephone_wa=boutique_tel, actif=True)
@@ -186,7 +179,7 @@ def _traiter_message_sync(msg_data: dict):
             if not boutique:
                 logger.warning("Aucune boutique active trouvée pour '%s'.", boutique_tel)
                 return
-            logger.info("Sandbox : boutique '%s' sélectionnée par défaut.", boutique.nom)
+            logger.info("Sandbox Twilio : boutique '%s' sélectionnée par défaut.", boutique.nom)
 
     # ── Déduplication ────────────────────────────────────────────────────
     if wa_message_id and MessageLog.objects.filter(wa_message_id=wa_message_id).exists():
@@ -204,90 +197,14 @@ def _traiter_message_sync(msg_data: dict):
             logger.info("Dashboard commerçant — boutique=%s msg=%s...", boutique.nom, contenu[:40])
             return
 
-    # ── Bot intelligent bilingue pour numéro 221767600283 (Twilio Sandbox) ───────
-    if boutique.telephone_wa == "221767600283":
-        # Bot intelligent bilingue - détection automatique et réponse intelligente
-        boutique_ciblee, reponse_intelligente = traiter_message_intelligent(contenu)
-        
-        # Vérifier si c'est une demande de paiement
-        if any(mot in contenu.lower() for mot in ['payer', 'paiement', 'wave', 'orange money', 'om']):
-            logger.info(f"💳 Demande de paiement détectée: {contenu[:30]}...")
-            
-            # Créer/trouver le client
-            langue = "wolof" if any(mot in contenu.lower() for mot in ["maa", "dama", "nga", "salam", "jang"]) else "fr"
-            client, created = Client.objects.get_or_create(
-                boutique=boutique,
-                telephone=client_tel,
-                defaults={"langue_preferee": langue},
-            )
-            
-            # Traiter la demande de paiement
-            instructions_paiement = traiter_demande_paiement(contenu, boutique, client_tel, 10000)  # Montant par défaut
-            if instructions_paiement:
-                envoyer_message_texte(boutique, client_tel, instructions_paiement)
-                return
-        
-        # Vérifier si c'est une confirmation de paiement
-        if any(mot in contenu.lower() for mot in ['paiement envoyé', 'envoyé', 'confirmé', 'bayi']):
-            logger.info(f"✅ Confirmation de paiement détectée: {contenu[:30]}...")
-            
-            # Créer/trouver le client
-            langue = "wolof" if any(mot in contenu.lower() for mot in ["maa", "dama", "nga", "salam", "jang"]) else "fr"
-            client, created = Client.objects.get_or_create(
-                boutique=boutique,
-                telephone=client_tel,
-                defaults={"langue_preferee": langue},
-            )
-            
-            # Confirmer le paiement
-            confirmation = confirmer_paiement_client(contenu, boutique, client_tel)
-            if confirmation:
-                envoyer_message_texte(boutique, client_tel, confirmation)
-                return
-        
-        if boutique_ciblee and boutique_ciblee.id != boutique.id:
-            # Router vers la boutique détectée avec réponse intelligente
-            from .bot_engine import traiter_message_client
-            logger.info(
-                "🤖 Bot intelligent: %s → %s (message: %s...)",
-                boutique.nom, boutique_ciblee.nom, contenu[:30]
-            )
-            
-            # Créer/trouver le client pour la boutique cible
-            langue = "wolof" if any(mot in contenu.lower() for mot in ["maa", "dama", "nga", "salam", "jang"]) else "fr"
-            client, created = Client.objects.get_or_create(
-                boutique=boutique_ciblee,
-                telephone=client_tel,
-                defaults={"langue_preferee": langue},
-            )
-            
-            # Envoyer la réponse intelligente immédiatement
-            if reponse_intelligente:
-                envoyer_message_texte(boutique_ciblee, client_tel, reponse_intelligente)
-            
-            # Traiter le message avec la boutique cible pour plus de détails
-            reponse_detaillee = traiter_message_client(boutique_ciblee, client, contenu, type_msg, wa_message_id)
-            
-            # Envoyer la réponse détaillée si différente de la réponse intelligente
-            if reponse_detaillee and reponse_detaillee != reponse_intelligente:
-                envoyer_message_texte(boutique_ciblee, client_tel, reponse_detaillee)
-            return
-        
-        elif reponse_intelligente:
-            # Envoyer la réponse intelligente même si aucune boutique spécifique détectée
-            logger.info(
-                "🤖 Bot intelligent: réponse générale pour %s (message: %s...)",
-                client_tel, contenu[:30]
-            )
-            envoyer_message_texte(boutique, client_tel, reponse_intelligente)
-            return
-
+    # ── Créer / récupérer le client ───────────────────────────────────────
     client, created = Client.objects.get_or_create(
         boutique=boutique,
         telephone=client_tel,
         defaults={"langue_preferee": "fr"},
     )
 
+    # ── Logguer le message entrant ────────────────────────────────────────
     MessageLog.objects.create(
         boutique=boutique,
         telephone_client=client_tel,
@@ -297,10 +214,12 @@ def _traiter_message_sync(msg_data: dict):
         wa_message_id=wa_message_id,
     )
 
+    # ── Nouveau client : message de bienvenue ─────────────────────────────
     if created:
         envoyer_message_bienvenue(boutique, client_tel)
         return
 
+    # ── Bot IA : traiter le message et répondre ───────────────────────────
     reponse = traiter_message(
         boutique=boutique,
         client=client,
