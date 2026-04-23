@@ -218,3 +218,4 @@ def notifier_alerte_stock(boutique: Boutique, produit) -> bool:
         f"Pensez à réapprovisionner !"
     )
     return envoyer_notification_commercant(boutique, message)
+

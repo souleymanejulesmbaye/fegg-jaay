@@ -1,0 +1,149 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Inscription Automatisée - Fëgg Jaay{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">🚀 Inscription Automatisée - Fëgg Jaay</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5>⚡ Configuration en 3 minutes</h5>
+                    <p class="mb-0">
+                        Remplissez ce formulaire et recevez automatiquement 
+                        vos instructions de configuration WhatsApp par email.
+                    </p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.nom.id_for_label }}" class="form-label">
+                                    🏪 Nom de la boutique *
+                                </label>
+                                {{ form.nom|add_class:"form-control" }}
+                                {% if form.nom.errors %}
+                                    <div class="text-danger">{{ form.nom.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">
+                                    Ex: SALMON SHOP, TASH PRESTIGE
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.ville.id_for_label }}" class="form-label">
+                                    📍 Ville *
+                                </label>
+                                {{ form.ville|add_class:"form-control" }}
+                                {% if form.ville.errors %}
+                                    <div class="text-danger">{{ form.ville.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.telephone_wa.id_for_label }}" class="form-label">
+                                    📱 Numéro WhatsApp pour les clients *
+                                </label>
+                                {{ form.telephone_wa|add_class:"form-control" }}
+                                {% if form.telephone_wa.errors %}
+                                    <div class="text-danger">{{ form.telephone_wa.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">
+                                    Format: 221771234567 (avec indicatif)
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.proprietaire_tel.id_for_label }}" class="form-label">
+                                    👤 Votre numéro personnel *
+                                </label>
+                                {{ form.proprietaire_tel|add_class:"form-control" }}
+                                {% if form.proprietaire_tel.errors %}
+                                    <div class="text-danger">{{ form.proprietaire_tel.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">
+                                    Pour le dashboard commerçant
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">
+                                    📧 Email professionnel *
+                                </label>
+                                {{ form.email|add_class:"form-control" }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger">{{ form.email.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">
+                                    Pour recevoir les instructions
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.password.id_for_label }}" class="form-label">
+                                    🔑 Mot de passe *
+                                </label>
+                                {{ form.password|add_class:"form-control" }}
+                                {% if form.password.errors %}
+                                    <div class="text-danger">{{ form.password.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">
+                                    Pour accéder à votre dashboard
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.accept_terms|add_class:"form-check-input" }}
+                            <label class="form-check-label" for="{{ form.accept_terms.id_for_label }}">
+                                J'accepte les conditions d'utilisation et comprends que 
+                                la configuration WhatsApp nécessite un abonnement à 360dialog (€49/mois)
+                            </label>
+                            {% if form.accept_terms.errors %}
+                                <div class="text-danger">{{ form.accept_terms.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6>💰 Coût de la configuration</h6>
+                        <ul class="mb-0">
+                            <li>Abonnement 360dialog : €49/mois (~32.000 FCFA)</li>
+                            <li>Premier mois : Configuration offerte par Fëgg Jaay</li>
+                            <li>Annulation possible à tout moment</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            🚀 Créer ma boutique et recevoir les instructions
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

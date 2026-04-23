@@ -18,6 +18,8 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
+from .routing_intelligent import detecter_boutique_dans_message
+
 logger = logging.getLogger(__name__)
 
 
@@ -198,6 +200,34 @@ def _traiter_message_sync(msg_data: dict):
             reponse = traiter_message_commercant(boutique, contenu)
             envoyer_message_texte(boutique, client_tel, reponse)
             logger.info("Dashboard commerçant — boutique=%s msg=%s...", boutique.nom, contenu[:40])
+            return
+
+    # ── Routing intelligent pour numéro partagé 221767600283 ──────────────────
+    if boutique.telephone_wa == "221767600283":
+        # Numéro partagé - routing intelligent par détection de boutique
+        boutique_ciblee = detecter_boutique_dans_message(contenu)
+        
+        if boutique_ciblee and boutique_ciblee.id != boutique.id:
+            # Router vers la boutique détectée
+            from .bot_engine import traiter_message_client
+            logger.info(
+                "Routing partagé: %s → %s (message: %s...)",
+                boutique.nom, boutique_ciblee.nom, contenu[:30]
+            )
+            
+            # Créer/trouver le client pour la boutique cible
+            client, created = Client.objects.get_or_create(
+                boutique=boutique_ciblee,
+                telephone=client_tel,
+                defaults={"langue_preferee": "fr"},
+            )
+            
+            # Traiter le message avec la boutique cible
+            reponse = traiter_message_client(boutique_ciblee, client, contenu, type_msg, wa_message_id)
+            
+            # Envoyer la réponse depuis la boutique cible
+            if reponse:
+                envoyer_message_texte(boutique_ciblee, client_tel, reponse)
             return
 
     client, created = Client.objects.get_or_create(

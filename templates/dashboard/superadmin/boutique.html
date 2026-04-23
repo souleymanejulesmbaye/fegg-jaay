@@ -77,7 +77,14 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
       <div class="info-item"><label>Propriétaire</label><span>{{ shop.proprietaire.username|default:"—" }}</span></div>
       <div class="info-item"><label>Téléphone</label><span>+{{ shop.proprietaire_tel }}</span></div>
-      <div class="info-item"><label>WhatsApp Phone ID</label><span>{{ shop.wa_phone_id|default:"Non configuré" }}</span></div>
+      <div class="info-item">
+        <label>WhatsApp Phone ID</label>
+        {% if shop.wa_phone_id %}
+          <span style="color:#16a34a;font-weight:600;">✅ {{ shop.wa_phone_id }}</span>
+        {% else %}
+          <span style="color:#e74c3c;">Non configuré</span>
+        {% endif %}
+      </div>
       <div class="info-item"><label>Fin abonnement</label><span>{{ shop.abonnement_fin|date:"d/m/Y"|default:"—" }}</span></div>
     </div>
     {% if shop.description %}
@@ -107,6 +114,13 @@
         </button>
       {% endif %}
     </form>
+
+    <!-- Configurer WhatsApp -->
+    <div style="margin-bottom:1rem;">
+      <a href="{% url 'dashboard:superadmin_setup_whatsapp' shop.pk %}" class="btn btn-primary" style="background:#25D366;border-color:#25D366;display:inline-flex;align-items:center;gap:0.4rem;font-size:0.85rem;">
+        {% if shop.wa_phone_id %}🔄 Reconfigurer WhatsApp{% else %}📱 Configurer WhatsApp{% endif %}
+      </a>
+    </div>
 
     <!-- Changer plan -->
     <form method="post" action="{% url 'dashboard:superadmin_plan' shop.pk %}">

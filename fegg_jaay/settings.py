@@ -181,6 +181,11 @@ WA_APP_SECRET = config("WA_APP_SECRET", default="")
 WA_PLATFORM_TOKEN = config("WA_PLATFORM_TOKEN", default="")
 WA_PLATFORM_PHONE_NUMBER_ID = config("WA_PLATFORM_PHONE_NUMBER_ID", default="")
 
+# ─── 360dialog Partner API ─────────────────────────────────────────────────────
+DIALOG360_PARTNER_ID = config("DIALOG360_PARTNER_ID", default="")
+DIALOG360_PARTNER_TOKEN = config("DIALOG360_PARTNER_TOKEN", default="")
+SITE_URL = config("SITE_URL", default="https://feggjaay.com")
+
 # ─── Twilio WhatsApp ───────────────────────────────────────────────────────────
 TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")
 TWILIO_AUTH_TOKEN = config("TWILIO_AUTH_TOKEN", default="")

@@ -54,6 +54,11 @@ class Boutique(models.Model):
         blank=True,
         verbose_name="Token API WhatsApp (360dialog)",
     )
+    wa_config_validee = models.BooleanField(
+        default=False,
+        verbose_name="Configuration WhatsApp validée",
+        help_text="True si le bot WhatsApp fonctionne correctement",
+    )
 
     # URL publique
     slug = models.SlugField(

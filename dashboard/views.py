@@ -40,6 +40,7 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 
 from boutiques.models import Boutique, Categorie, Commande, LigneCommande, Produit, Client, MessageLog, ZoneLivraison, PushSubscription
+from .forms import CommercantAutoConfigForm
 
 logger = logging.getLogger(__name__)
 
@@ -961,6 +962,87 @@ def superadmin_changer_plan(request, boutique_id):
     return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
 
 
+@_superuser_required
+def superadmin_setup_whatsapp(request, boutique_id):
+    """Génère le lien 360dialog Partner Hosted Signup pour configurer WhatsApp d'une boutique."""
+    from django.conf import settings as django_settings
+
+    shop = get_object_or_404(Boutique, pk=boutique_id)
+    partner_id = getattr(django_settings, "DIALOG360_PARTNER_ID", "")
+    site_url = getattr(django_settings, "SITE_URL", "").rstrip("/")
+
+    if not partner_id:
+        messages.error(request, "DIALOG360_PARTNER_ID non configuré dans les settings.")
+        return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+    callback_url = f"{site_url}/dashboard/superadmin/whatsapp-callback/"
+    signup_url = (
+        f"https://hub.360dialog.com/dashboard/app/{partner_id}/permissions"
+        f"?redirect_url={callback_url}"
+        f"&state={shop.pk}"
+    )
+
+    return render(request, "dashboard/superadmin/setup_whatsapp.html", {
+        "shop": shop,
+        "signup_url": signup_url,
+    })
+
+
+@_superuser_required
+def superadmin_whatsapp_callback(request):
+    """Reçoit le retour 360dialog après que le commerçant a connecté son numéro."""
+    import urllib.request
+    import json as json_mod
+    from django.conf import settings as django_settings
+
+    client_id = request.GET.get("client", "").strip()
+    boutique_id = request.GET.get("state", "").strip()
+
+    if not client_id or not boutique_id:
+        messages.error(request, "Callback 360dialog invalide : paramètres manquants.")
+        return redirect("dashboard:superadmin_accueil")
+
+    shop = get_object_or_404(Boutique, pk=boutique_id)
+    partner_id = getattr(django_settings, "DIALOG360_PARTNER_ID", "")
+    partner_token = getattr(django_settings, "DIALOG360_PARTNER_TOKEN", "")
+
+    if not partner_id or not partner_token:
+        messages.error(request, "Credentials 360dialog Partner manquants dans les settings.")
+        return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+    api_url = f"https://hub.360dialog.com/api/v2/partners/{partner_id}/clients/{client_id}/channels"
+    req = urllib.request.Request(
+        api_url,
+        headers={"Authorization": f"Bearer {partner_token}", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json_mod.loads(resp.read().decode())
+    except Exception as exc:
+        messages.error(request, f"Erreur API 360dialog : {exc}")
+        return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+    channels = data.get("partner_channels") or data.get("channels") or []
+    if not channels:
+        messages.error(request, "Aucun channel trouvé pour ce client 360dialog.")
+        return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+    channel = channels[0]
+    phone_number_id = channel.get("id", "")
+    api_key = channel.get("api_key", "")
+
+    if not phone_number_id or not api_key:
+        messages.error(request, "Données channel 360dialog incomplètes.")
+        return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+    shop.wa_phone_id = phone_number_id
+    shop.wa_token = api_key
+    shop.save(update_fields=["wa_phone_id", "wa_token", "updated_at"])
+
+    messages.success(request, f"WhatsApp configuré pour « {shop.nom} » (Phone ID : {phone_number_id}).")
+    return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+
 # ─── Web Push ────────────────────────────────────────────────────────────────
 
 @login_required
@@ -1182,4 +1264,138 @@ def stats(request):
         "panier_moyen": panier_moyen,
         "total_cmds": total_cmds,
         "payees_cmds": payees_cmds,
+    })
+
+
+# ─── Automatisation Configuration WhatsApp ───────────────────────────────────
+
+def inscription_auto(request):
+    """Formulaire d'inscription automatisé pour les commerçants à distance."""
+    if request.method == "POST":
+        form = CommercantAutoConfigForm(request.POST)
+        if form.is_valid():
+            boutique = form.save()
+            
+            # Envoyer les instructions de configuration WhatsApp
+            envoyer_instructions_whatsapp(boutique)
+            
+            messages.success(
+                request,
+                f"✅ Boutique {boutique.nom} créée ! "
+                "Consultez votre email pour les instructions WhatsApp."
+            )
+            return redirect("dashboard:attente_config", slug=boutique.slug)
+    else:
+        form = CommercantAutoConfigForm()
+    
+    return render(request, "dashboard/inscription_auto.html", {"form": form})
+
+
+def attente_config(request, slug):
+    """Page d'attente avec instructions de configuration WhatsApp."""
+    boutique = get_object_or_404(Boutique, slug=slug)
+    
+    return render(request, "dashboard/attente_config.html", {
+        "boutique": boutique,
+        "etape_config": boutique.get_etape_configuration(),
+    })
+
+
+def envoyer_instructions_whatsapp(boutique: Boutique):
+    """Envoie les instructions de configuration par email et WhatsApp."""
+    from django.core.mail import send_mail
+    from django.conf import settings
+    
+    sujet = f"🚀 Configuration WhatsApp - {boutique.nom}"
+    
+    instructions = f"""
+🎯 BIENVENUE SUR FEGG JAAY !
+
+Votre boutique a été créée avec succès :
+📋 Nom : {boutique.nom}
+📱 WhatsApp : {boutique.telephone_wa}
+👤 Propriétaire : {boutique.proprietaire_tel}
+
+📝 ÉTAPES DE CONFIGURATION WHATSAPP :
+
+1️⃣ Créez votre compte 360dialog :
+   🔗 https://app.360dialog.io/signup
+   💰 Coût : €49/mois (~32.000 FCFA)
+
+2️⃣ Achetez votre numéro WhatsApp :
+   📱 Numéro souhaité : {boutique.telephone_wa}
+   ⏱️ Validation : 24-48h
+
+3️⃣ Récupérez vos identifiants :
+   🔑 Phone ID : [visible dans 360dialog]
+   🔑 Token API : [visible dans 360dialog]
+
+4️⃣ Configurez votre boutique :
+   🔗 Connectez-vous à votre dashboard
+   📊 Menu "Configuration WhatsApp"
+   ✅ Entrez Phone ID + Token
+
+🚀 UNE FOIS CONFIGURÉ :
+- Vos clients pourront vous joindre directement
+- Le bot répondra automatiquement 24/7
+- Vous recevrez les commandes par WhatsApp
+
+📞 BESOIN D'AIDE ?
+- WhatsApp : +221778953918
+- Email : support@feggjaay.shop
+
+C'est parti ! 🎉
+    """
+    
+    # Envoyer par email
+    send_mail(
+        sujet,
+        instructions,
+        settings.DEFAULT_FROM_EMAIL,
+        [boutique.proprietaire.email],
+        fail_silently=False,
+    )
+    
+    logger.info("Instructions WhatsApp envoyées à %s", boutique.nom)
+
+
+@require_POST
+def verifier_config_whatsapp(request, slug):
+    """Vérifie si la configuration WhatsApp est fonctionnelle."""
+    boutique = get_object_or_404(Boutique, slug=slug)
+    
+    from whatsapp.sender import envoyer_message_texte
+    
+    try:
+        # Test d'envoi de message
+        success = envoyer_message_texte(
+            boutique,
+            boutique.proprietaire_tel,
+            f"🎉 Configuration validée ! Votre bot {boutique.nom} est actif."
+        )
+        
+        if success:
+            boutique.wa_config_validee = True
+            boutique.save()
+            return JsonResponse({"success": True, "message": "✅ Configuration validée !"})
+        else:
+            return JsonResponse({"success": False, "message": "❌ Échec de l'envoi"})
+            
+    except Exception as e:
+        return JsonResponse({"success": False, "message": f"❌ Erreur: {str(e)}"})
+
+
+def tableau_bord_automatisation(request):
+    """Tableau de bord pour suivre les configurations en cours."""
+    if not request.user.is_superuser:
+        return redirect("dashboard:login")
+    
+    boutiques_en_attente = Boutique.objects.filter(wa_config_validee=False, actif=True)
+    boutiques_actives = Boutique.objects.filter(wa_config_validee=True, actif=True)
+    
+    return render(request, "dashboard/automatisation.html", {
+        "en_attente": boutiques_en_attente,
+        "actives": boutiques_actives,
+        "total_en_attente": boutiques_en_attente.count(),
+        "total_actives": boutiques_actives.count(),
     })

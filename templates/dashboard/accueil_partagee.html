@@ -1,0 +1,227 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Service WhatsApp Fëgg Jaay - Plusieurs boutiques, un seul numéro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white text-center">
+                    <h2 class="mb-0">📱 Service WhatsApp Fëgg Jaay</h2>
+                    <p class="mb-0">Plusieurs boutiques, un seul numéro intelligent</p>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Message principal -->
+                    <div class="alert alert-info text-center">
+                        <h4>🎯 Comment ça marche ?</h4>
+                        <p class="mb-0">
+                            Envoyez un simple message WhatsApp avec le nom de la boutique souhaitée.
+                            Notre système détecte automatiquement et vous connecte au bon commerçant !
+                        </p>
+                    </div>
+
+                    <!-- Instructions par boutique -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>📋 Instructions rapides</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-unstyled">
+                                        {% for instruction in instructions %}
+                                            <li class="mb-2">
+                                                <strong>📱</strong> {{ instruction }}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>🏪 Boutiques disponibles</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% for boutique in boutiques %}
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>
+                                                <strong>{{ boutique.nom }}</strong><br>
+                                                <small class="text-muted">{{ boutique.ville }}</small>
+                                            </span>
+                                            <span class="badge bg-success">Actif</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exemples de messages -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h6>💬 Exemples de messages à envoyer</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="border rounded p-3 text-center">
+                                                <strong>Pour commander :</strong><br>
+                                                <code>"salut salmon shop je veux commander 2 t-shirts"</code>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="border rounded p-3 text-center">
+                                                <strong>Pour le catalogue :</strong><br>
+                                                <code>"bonjour tash prestige montre moi vos produits"</code>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="border rounded p-3 text-center">
+                                                <strong>Pour les prix :</strong><br>
+                                                <code>"catalogue teranga quels sont vos prix ?"</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section test -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">🧪 Testez maintenant</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="testForm">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Votre numéro WhatsApp</label>
+                                                    <input type="tel" class="form-control" id="telephone" 
+                                                           placeholder="221771234567" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Message test</label>
+                                                    <input type="text" class="form-control" id="message" 
+                                                           placeholder="salut salmon shop" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            🧪 Tester le routing
+                                        </button>
+                                    </form>
+                                    <div id="testResult" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Avantages -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5>🌟 Avantages du service partagé</h5>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <h6>💰 Économique</h6>
+                                            <p>5.000 FCFA/mois au lieu de 128.000 FCFA</p>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h6>⚡ Rapide</h6>
+                                            <p>Configuration instantanée</p>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h6>🤖 Intelligent</h6>
+                                            <p>Détection automatique de la boutique</p>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h6>📱 Simple</h6>
+                                            <p>Un seul numéro à mémoriser</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('testForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const telephone = document.getElementById('telephone').value;
+    const message = document.getElementById('message').value;
+    const resultDiv = document.getElementById('testResult');
+    
+    // Simuler le test de routing
+    fetch('/dashboard/test-routing/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            telephone: telephone,
+            message: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    ✅ Routing détecté : <strong>${data.boutique}</strong><br>
+                    ${data.message}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-warning">
+                    ⚠️ ${data.message}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                ❌ Erreur de connexion
+            </div>
+        `;
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

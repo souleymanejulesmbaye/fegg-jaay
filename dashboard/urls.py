@@ -59,9 +59,17 @@ urlpatterns = [
     path("push/subscribe/", views.push_subscribe, name="push_subscribe"),
     path("push/unsubscribe/", views.push_unsubscribe, name="push_unsubscribe"),
 
+    # Automatisation Configuration WhatsApp
+    path("inscription-auto/", views.inscription_auto, name="inscription_auto"),
+    path("attente-config/<slug:slug>/", views.attente_config, name="attente_config"),
+    path("verifier-config/<slug:slug>/", views.verifier_config_whatsapp, name="verifier_config_whatsapp"),
+    path("automatisation/", views.tableau_bord_automatisation, name="automatisation"),
+
     # Super-Admin
     path("superadmin/", views.superadmin_accueil, name="superadmin_accueil"),
     path("superadmin/boutique/<uuid:boutique_id>/", views.superadmin_boutique, name="superadmin_boutique"),
     path("superadmin/boutique/<uuid:boutique_id>/toggle/", views.superadmin_toggle_boutique, name="superadmin_toggle"),
     path("superadmin/boutique/<uuid:boutique_id>/plan/", views.superadmin_changer_plan, name="superadmin_plan"),
+    path("superadmin/boutique/<uuid:boutique_id>/setup-whatsapp/", views.superadmin_setup_whatsapp, name="superadmin_setup_whatsapp"),
+    path("superadmin/whatsapp-callback/", views.superadmin_whatsapp_callback, name="superadmin_whatsapp_callback"),
 ]

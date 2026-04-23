@@ -1,0 +1,316 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Configuration WhatsApp - {{ boutique.nom }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">⏳ Configuration WhatsApp en cours - {{ boutique.nom }}</h4>
+            </div>
+            <div class="card-body">
+                
+                <!-- Étapes de configuration -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>📋 Étapes de configuration</h5>
+                            <span class="badge bg-primary">Étape {{ etape_config }}/4</span>
+                        </div>
+                        
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 style="width: {{ etape_config|mul:25 }}%">
+                                {{ etape_config|mul:25 }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instructions détaillées -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">📝 Instructions de configuration</h6>
+                                
+                                <div class="timeline">
+                                    <!-- Étape 1 -->
+                                    <div class="timeline-item {% if etape_config >= 1 %}completed{% endif %}">
+                                        <div class="timeline-marker">
+                                            {% if etape_config >= 1 %}✅{% else %}1️⃣{% endif %}
+                                        </div>
+                                        <div class="timeline-content">
+                                            <h6>Créez votre compte 360dialog</h6>
+                                            <p class="text-muted">
+                                                <a href="https://app.360dialog.io/signup" target="_blank">
+                                                    🔗 Ouvrir 360dialog
+                                                </a>
+                                            </p>
+                                            <ul class="small">
+                                                <li>Inscrivez-vous avec votre email</li>
+                                                <li>Choisissez le plan Regular (€49/mois)</li>
+                                                <li>Validez votre email</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <!-- Étape 2 -->
+                                    <div class="timeline-item {% if etape_config >= 2 %}completed{% endif %}">
+                                        <div class="timeline-marker">
+                                            {% if etape_config >= 2 %}✅{% else %}2️⃣{% endif %}
+                                        </div>
+                                        <div class="timeline-content">
+                                            <h6>Achetez votre numéro WhatsApp</h6>
+                                            <p class="text-muted">
+                                                Numéro souhaité : <strong>{{ boutique.telephone_wa }}</strong>
+                                            </p>
+                                            <ul class="small">
+                                                <li>Dans 360dialog, demandez ce numéro</li>
+                                                <li>Validation : 24-48h</li>
+                                                <li>Coût : inclus dans l'abonnement</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <!-- Étape 3 -->
+                                    <div class="timeline-item {% if etape_config >= 3 %}completed{% endif %}">
+                                        <div class="timeline-marker">
+                                            {% if etape_config >= 3 %}✅{% else %}3️⃣{% endif %}
+                                        </div>
+                                        <div class="timeline-content">
+                                            <h6>Récupérez vos identifiants</h6>
+                                            <div class="bg-light p-3 rounded">
+                                                <p class="mb-1"><strong>Phone ID :</strong> <span class="text-muted">[visible dans 360dialog]</span></p>
+                                                <p class="mb-0"><strong>Token API :</strong> <span class="text-muted">[visible dans 360dialog]</span></p>
+                                            </div>
+                                            <p class="small text-muted mt-2">
+                                                Ces identifiants apparaîtront dans votre dashboard 360dialog 
+                                                une fois le numéro validé.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Étape 4 -->
+                                    <div class="timeline-item {% if etape_config >= 4 %}completed{% endif %}">
+                                        <div class="timeline-marker">
+                                            {% if etape_config >= 4 %}✅{% else %}4️⃣{% endif %}
+                                        </div>
+                                        <div class="timeline-content">
+                                            <h6>Configurez votre boutique</h6>
+                                            <p>Connectez-vous à votre dashboard Fëgg Jaay et entrez les identifiants.</p>
+                                            
+                                            <button class="btn btn-success" onclick="configurerWhatsApp()">
+                                                ⚙️ Configurer WhatsApp maintenant
+                                            </button>
+                                            
+                                            <div id="config-form" class="mt-3" style="display: none;">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Phone ID</label>
+                                                    <input type="text" id="phone-id" class="form-control" 
+                                                           placeholder="1075918528938252">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Token API</label>
+                                                    <textarea id="token-api" class="form-control" rows="3"
+                                                              placeholder="EAAD..."></textarea>
+                                                </div>
+                                                <button class="btn btn-primary" onclick="sauvegarderConfig()">
+                                                    💾 Sauvegarder la configuration
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne latérale -->
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>📊 Récapitulatif</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>Boutique :</strong> {{ boutique.nom }}</li>
+                                    <li><strong>WhatsApp :</strong> {{ boutique.telephone_wa }}</li>
+                                    <li><strong>Ville :</strong> {{ boutique.ville }}</li>
+                                    <li><strong>Email :</strong> {{ boutique.proprietaire.email }}</li>
+                                </ul>
+                                
+                                <hr>
+                                
+                                <h6>💰 Coût</h6>
+                                <p class="mb-0">
+                                    <strong>€49/mois</strong> (~32.000 FCFA)<br>
+                                    <small class="text-muted">Premier mois offert</small>
+                                </p>
+                                
+                                <hr>
+                                
+                                <h6>📞 Support</h6>
+                                <p class="small mb-0">
+                                    WhatsApp : +221778953918<br>
+                                    Email : support@feggjaay.shop
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-body">
+                                <h6>🎯 Une fois configuré</h6>
+                                <ul class="small">
+                                    <li>✅ Clients vous joignent directement</li>
+                                    <li>✅ Bot répond 24/7 automatiquement</li>
+                                    <li>✅ Commandes par WhatsApp</li>
+                                    <li>✅ Dashboard commerçant</li>
+                                    <li>✅ Notifications instantanées</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test de configuration -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>🧪 Tester la configuration</h6>
+                                <p class="text-muted">
+                                    Une fois les identifiants configurés, testez votre bot ici :
+                                </p>
+                                <button class="btn btn-outline-primary" onclick="testerConfiguration()">
+                                    📱 Envoyer un message de test
+                                </button>
+                                <div id="test-result" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function configurerWhatsApp() {
+    document.getElementById('config-form').style.display = 'block';
+}
+
+function sauvegarderConfig() {
+    const phoneId = document.getElementById('phone-id').value;
+    const tokenApi = document.getElementById('token-api').value;
+    
+    if (!phoneId || !tokenApi) {
+        alert('Veuillez remplir tous les champs');
+        return;
+    }
+    
+    fetch(`/dashboard/verifier-config/{{ boutique.slug }}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            phone_id: phoneId,
+            token: tokenApi
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Configuration validée ! Votre bot est actif.');
+            location.reload();
+        } else {
+            alert('❌ Erreur: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('❌ Erreur de connexion');
+    });
+}
+
+function testerConfiguration() {
+    fetch(`/dashboard/verifier-config/{{ boutique.slug }}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultDiv = document.getElementById('test-result');
+        if (data.success) {
+            resultDiv.innerHTML = '<div class="alert alert-success">✅ ' + data.message + '</div>';
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-danger">❌ ' + data.message + '</div>';
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        document.getElementById('test-result').innerHTML = '<div class="alert alert-danger">❌ Erreur de connexion</div>';
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 30px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -40px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.timeline-item.completed .timeline-marker {
+    background: #28a745;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 3px solid #007bff;
+}
+
+.timeline-item.completed .timeline-content {
+    border-left-color: #28a745;
+}
+</style>
+{% endblock %}
