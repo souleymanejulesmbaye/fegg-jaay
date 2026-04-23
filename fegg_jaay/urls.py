@@ -11,7 +11,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("deploy/webhook/", deploy_webhook, name="deploy_webhook"),
     path("wa/", include("whatsapp.urls")),
-    path("whatsapp/", include("whatsapp.urls")),
     path("dashboard/", include("dashboard.urls")),
     path("", include("vitrine.urls")),
 ]
