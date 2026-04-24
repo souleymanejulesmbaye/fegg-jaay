@@ -219,11 +219,20 @@ def _traiter_message_sync(msg_data: dict):
             try:
                 boutique = Boutique.objects.get(telephone_wa=alt_tel, actif=True)
             except Boutique.DoesNotExist:
-                boutique = Boutique.objects.filter(actif=True).first()
-                if not boutique:
-                    logger.warning("Aucune boutique active trouvée pour '%s'.", boutique_tel)
-                    return
-                logger.info("Boutique '%s' sélectionnée par défaut pour '%s'.", boutique.nom, boutique_tel)
+                default_id = getattr(settings, "TWILIO_DEFAULT_BOUTIQUE_ID", "") if provider == "twilio" else ""
+                if default_id:
+                    try:
+                        boutique = Boutique.objects.get(pk=default_id, actif=True)
+                        logger.info("Boutique Twilio par défaut '%s' utilisée.", boutique.nom)
+                    except Boutique.DoesNotExist:
+                        logger.warning("TWILIO_DEFAULT_BOUTIQUE_ID '%s' introuvable.", default_id)
+                        return
+                else:
+                    boutique = Boutique.objects.filter(actif=True).first()
+                    if not boutique:
+                        logger.warning("Aucune boutique active trouvée pour '%s'.", boutique_tel)
+                        return
+                    logger.info("Boutique '%s' sélectionnée par défaut pour '%s'.", boutique.nom, boutique_tel)
 
     # ── Déduplication ────────────────────────────────────────────────────
     if wa_message_id and MessageLog.objects.filter(wa_message_id=wa_message_id).exists():

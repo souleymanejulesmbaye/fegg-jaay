@@ -196,6 +196,9 @@ INFOBIP_API_KEY = config("INFOBIP_API_KEY", default="")
 INFOBIP_BASE_URL = config("INFOBIP_BASE_URL", default="api.infobip.com")
 INFOBIP_SENDER_NUMBER = config("INFOBIP_SENDER_NUMBER", default="")
 
+# ─── Twilio : boutique par défaut pour le sandbox (UUID) ──────────────────────
+TWILIO_DEFAULT_BOUTIQUE_ID = config("TWILIO_DEFAULT_BOUTIQUE_ID", default="")
+
 # ─── Logging ──────────────────────────────────────────────────────────────────
 LOGGING = {
     "version": 1,
