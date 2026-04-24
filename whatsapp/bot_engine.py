@@ -77,6 +77,19 @@ Note : "produits" est une liste vide [] si ce n'est pas une commande.
 """
 
 
+_MOTS_ECHAPPER = frozenset([
+    "annuler", "annulation", "cancel",
+    "bonjour", "bonsoir", "salut", "hello", "hi", "bjr", "bsr", "slt",
+    "catalogue", "aide", "help", "menu", "accueil",
+    "nanga def", "asalaamaalekum", "salam", "jamm",
+])
+
+_MOTS_NOUVELLE_COMMANDE = frozenset([
+    "acheter", "commander", "je veux", "je voudrais", "je prends",
+    "donne moi", "commande", "jënd", "bëgg jënd",
+])
+
+
 def traiter_message(
     boutique: Boutique,
     client: Client,
@@ -90,15 +103,24 @@ def traiter_message(
     En cas d'erreur, retourne un message d'excuse générique.
     """
     try:
-        # Vérifier si on attend une référence de paiement
-        commande_paiement = _est_en_attente_reference_paiement(boutique, client)
-        if commande_paiement:
-            return _sauver_reference_paiement(commande_paiement, message, client)
+        msg_lower = message.lower().strip()
 
-        # Vérifier si on attend une adresse de livraison
-        commande_adresse = _est_en_attente_adresse(boutique, client)
-        if commande_adresse:
-            return _sauver_adresse_livraison(commande_adresse, message, client)
+        # Mots qui sortent toujours de la machine à états (salutations, annulations, nouvelles commandes)
+        is_escape = (
+            any(w in msg_lower for w in _MOTS_ECHAPPER)
+            or any(w in msg_lower for w in _MOTS_NOUVELLE_COMMANDE)
+        )
+
+        if not is_escape:
+            # Vérifier si on attend une référence de paiement
+            commande_paiement = _est_en_attente_reference_paiement(boutique, client)
+            if commande_paiement:
+                return _sauver_reference_paiement(commande_paiement, message, client)
+
+            # Vérifier si on attend une adresse de livraison
+            commande_adresse = _est_en_attente_adresse(boutique, client)
+            if commande_adresse:
+                return _sauver_adresse_livraison(commande_adresse, message, client)
 
         # 1. Construire le prompt (avec infos client)
         system_prompt = _construire_system_prompt(boutique, client)
@@ -227,6 +249,56 @@ def _simuler_reponse(message: str, system_prompt: str) -> str:
     # Cherche TOUS les produits mentionnés avec leur quantité
     produits_trouves = _extraire_multi_produits(msg, produits_catalogue)
 
+    # ── Au revoir / clôture ───────────────────────────────────────────────
+    farewell_fr = ["au revoir", "à bientôt", "bonne journée", "bonne nuit", "à plus", "tchao", "bye", "ciao"]
+    farewell_wo = ["mangi dem", "ba beneen", "ba ci kanam", "jërejëf ak jaamu"]
+    if any(m in msg for m in farewell_fr + farewell_wo):
+        texte = ("Ba beneen yoon ! Jërejëf 🙏" if langue == "wo"
+                 else "Au revoir ! À bientôt, n'hésitez pas à revenir 🙏")
+        return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
+
+    # ── Modes de paiement disponibles ────────────────────────────────────
+    pay_methods = ["paypal", "carte", "visa", "mastercard", "espèces", "cash", "comment payer",
+                   "quel paiement", "mobile money", "free money", "free", "e-money"]
+    if any(m in msg for m in pay_methods):
+        texte = ("Nuyu jox xaalis ci Wave walla Orange Money. Bind numéro transaction bi ngir xam-xam."
+                 if langue == "wo"
+                 else "Nous acceptons Wave et Orange Money. Après paiement, envoyez votre référence de transaction.")
+        return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
+
+    # ── Livraison / zones / délais ────────────────────────────────────────
+    livr_fr = ["livrer", "livraison", "zone", "livreur", "déplacer", "délai", "combien de temps",
+               "quand est-ce", "thiès", "saint-louis", "ziguinchor", "touba", "kaolack", "banlieue"]
+    livr_wo = ["leeral", "porter", "yóbbu"]
+    if any(m in msg for m in livr_fr + livr_wo):
+        texte = ("Nuyu yóbbu ci Dakar ak banlieues bi. Délai : 24-48h. Def sa commande, nuyu la ci kanam !"
+                 if langue == "wo"
+                 else "Nous livrons sur Dakar et environs sous 24-48h. Passez votre commande et nous vous contacterons pour les détails !")
+        return json.dumps({"intent": "livraison", "produits": [], "langue": langue, "reponse": texte})
+
+    # ── Localisation / horaires boutique ─────────────────────────────────
+    loc_fr = ["où êtes", "où se trouve", "adresse boutique", "localisation", "horaire", "ouvert",
+              "fermé", "à quelle heure", "jusqu'à quand", "située"]
+    loc_wo = ["fan la", "ci fan", "fan moo"]
+    if any(m in msg for m in loc_fr + loc_wo):
+        texte = ("Commandez directement sur WhatsApp. Ci fan la def, commerçant bi dina la wax !"
+                 if langue == "wo"
+                 else "Commandez directement via WhatsApp ! Le commerçant vous communiquera les détails pratiques.")
+        return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
+
+    # ── Questions générales / hors sujet ─────────────────────────────────
+    question_fr = ["comment ça", "c'est quoi", "qu'est-ce", "est-ce que", "pouvez-vous", "peut-on",
+                   "avez-vous", "dites-moi", "expliquez", "c'est combien", "ça coûte"]
+    if any(m in msg for m in question_fr):
+        intro = f"Bonjour {prenom_client} ! " if prenom_client else ""
+        liste = "\n".join(produits_avec_prix[:5]) if produits_avec_prix else ""
+        texte = (
+            f"{intro}Je suis l'assistant de *{_extraire_nom_boutique(system_prompt)}*.\n\n"
+            + (f"Nos produits disponibles :\n{liste}\n\n" if liste else "")
+            + "Posez-moi votre question ou tapez *catalogue* pour voir tout ce qu'on propose 😊"
+        )
+        return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
+
     # ── Annulation ────────────────────────────────────────────────────────
     annul_fr = ["annuler", "cancel", "annulation", "je veux annuler", "supprimer ma commande"]
     annul_wo = ["bañ commande", "bañal commande", "man bëgguma"]
@@ -317,21 +389,20 @@ def _simuler_reponse(message: str, system_prompt: str) -> str:
                  else "Avec plaisir ! 😊 Autre chose que je peux faire pour vous ?")
         return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
 
-    # ── Défaut intelligent ────────────────────────────────────────────────
+    # ── Défaut intelligent — affiche quelques produits ────────────────────
     nom_boutique = _extraire_nom_boutique(system_prompt)
-    salut_prefix = f"Bonjour {prenom_client} ! " if prenom_client else ""
-    liste = "\n".join(produits_avec_prix[:5]) if produits_avec_prix else ""
+    salut_prefix = f"Bonjour {prenom_client} ! " if prenom_client else "Bonjour ! "
+    liste = "\n".join(produits_avec_prix[:4]) if produits_avec_prix else ""
     texte_fr = (
         f"{salut_prefix}Je suis l'assistant de *{nom_boutique}* 🤖\n\n"
-        f"Je peux vous aider à :\n"
-        f"• Voir notre catalogue (tapez *catalogue*)\n"
-        f"• Passer une commande\n"
-        f"• Suivre une commande\n\n"
-        f"Que puis-je faire pour vous ?"
+        + (f"Quelques produits disponibles :\n{liste}\n\n" if liste else "")
+        + "Tapez *catalogue* pour tout voir, ou dites-moi ce que vous cherchez 😊\n"
+        + "_(ex: \"je veux 2 [produit]\", \"annuler\", \"j'ai payé\")_"
     )
     texte_wo = (
         f"Man moy assistant bi ci *{nom_boutique}* 🤖\n\n"
-        f"Bind *catalogue* ngir xam yëgël yi, walla yëgëlal lan la bëgg jënd."
+        + (f"Yëgël yi :\n{liste}\n\n" if liste else "")
+        + "Bind *catalogue* ngir xam ci bees, walla yëgëlal lan la bëgg."
     )
     texte = texte_wo if langue == "wo" else texte_fr
     return json.dumps({"intent": "autre", "produits": [], "langue": langue, "reponse": texte})
