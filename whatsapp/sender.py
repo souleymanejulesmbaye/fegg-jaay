@@ -59,11 +59,19 @@ def envoyer_message_texte(
     boutique: Boutique,
     telephone_destinataire: str,
     texte: str,
+    *,
+    via: str = "",
 ) -> bool:
     """
     Envoie un message texte WhatsApp.
-    Priorité : 1) Meta boutique  2) Infobip  3) Meta plateforme  4) Twilio sandbox
+    via : force le provider ('twilio', 'infobip', 'meta'). Sinon auto.
+    Priorité auto : 1) Meta boutique  2) Infobip  3) Meta plateforme  4) Twilio sandbox
     """
+    if via == "twilio":
+        return _envoyer_twilio(boutique, telephone_destinataire, texte)
+    if via == "infobip":
+        return _envoyer_infobip(boutique, telephone_destinataire, texte)
+
     if boutique.wa_phone_id and boutique.wa_token:
         return _envoyer_meta_avec(boutique.wa_phone_id, boutique.wa_token, telephone_destinataire, texte, boutique.nom)
 

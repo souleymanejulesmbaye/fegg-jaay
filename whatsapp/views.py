@@ -237,7 +237,7 @@ def _traiter_message_sync(msg_data: dict):
         if tel_norm == prop_norm:
             from .dashboard_wa import traiter_message_commercant
             reponse = traiter_message_commercant(boutique, contenu)
-            envoyer_message_texte(boutique, client_tel, reponse)
+            envoyer_message_texte(boutique, client_tel, reponse, via=provider)
             logger.info("Dashboard commerçant — boutique=%s msg=%s...", boutique.nom, contenu[:40])
             return
 
@@ -260,7 +260,7 @@ def _traiter_message_sync(msg_data: dict):
 
     # ── Nouveau client : message de bienvenue ─────────────────────────────
     if created:
-        envoyer_message_bienvenue(boutique, client_tel)
+        envoyer_message_texte(boutique, client_tel, boutique.message_bienvenue, via=provider)
         return
 
     # ── Bot IA : traiter le message et répondre ───────────────────────────
@@ -279,5 +279,5 @@ def _traiter_message_sync(msg_data: dict):
         type_message="text",
     )
 
-    envoyer_message_texte(boutique, client_tel, reponse)
+    envoyer_message_texte(boutique, client_tel, reponse, via=provider)
     logger.info("Réponse envoyée à %s : %s...", client_tel, reponse[:80])
