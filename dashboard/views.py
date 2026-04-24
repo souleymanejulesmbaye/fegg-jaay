@@ -868,10 +868,40 @@ def _superuser_required(view_fn):
     @wraps(view_fn)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated or not request.user.is_superuser:
-            from django.contrib.auth.views import redirect_to_login
-            return redirect_to_login(request.get_full_path())
+            from urllib.parse import urlencode
+            params = urlencode({"next": request.get_full_path()})
+            return redirect(f"/dashboard/superadmin/login/?{params}")
         return view_fn(request, *args, **kwargs)
     return wrapper
+
+
+def superadmin_login(request):
+    """Page de connexion dédiée au super-admin."""
+    if request.user.is_authenticated and request.user.is_superuser:
+        return redirect("dashboard:superadmin_accueil")
+
+    erreur = None
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+        from django.contrib.auth import authenticate as _auth
+        user = _auth(request, username=username, password=password)
+        if user and user.is_superuser:
+            login(request, user)
+            next_url = request.POST.get("next", "").strip()
+            if next_url and next_url.startswith("/dashboard/superadmin"):
+                return redirect(next_url)
+            return redirect("dashboard:superadmin_accueil")
+        elif user:
+            erreur = "Ce compte n'a pas les droits administrateur."
+        else:
+            erreur = "Identifiants incorrects."
+
+    return render(request, "dashboard/superadmin/login.html", {
+        "erreur": erreur,
+        "next": request.GET.get("next", ""),
+    })
 
 
 @_superuser_required

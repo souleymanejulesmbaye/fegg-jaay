@@ -1,0 +1,160 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Admin{% endblock %} — Fëgg Jaay Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    a { color: #F59E0B; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Topbar ─────────────────────────────────────────────────── */
+    .topbar {
+      background: #1e293b; border-bottom: 2px solid #F59E0B;
+      padding: 0.7rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar .brand { font-size: 1.1rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 0.5rem; }
+    .topbar .brand span { color: #F59E0B; }
+    .admin-badge { background: #F59E0B; color: #0f172a; font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ── Nav ──────────────────────────────────────────────────────── */
+    .admin-nav {
+      background: #1e293b; border-bottom: 1px solid #334155;
+      padding: 0 1.5rem;
+      display: flex; align-items: center; gap: 0.1rem;
+    }
+    .admin-nav a {
+      color: #94a3b8; padding: 0.6rem 0.85rem; font-size: 0.87rem;
+      display: inline-block; text-decoration: none; border-radius: 4px;
+    }
+    .admin-nav a:hover { color: white; background: rgba(255,255,255,.06); text-decoration: none; }
+    .admin-nav a.active { color: #F59E0B; }
+    .admin-nav .sep { flex: 1; }
+    .admin-nav .nav-danger { color: #f87171 !important; }
+    .admin-nav .nav-danger:hover { background: rgba(220,38,38,.1) !important; }
+    .admin-nav .nav-merchant { font-size: 0.78rem; color: #475569 !important; }
+    .admin-nav .nav-merchant:hover { color: #94a3b8 !important; }
+
+    /* ── Container ───────────────────────────────────────────────── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+
+    /* ── Cards ───────────────────────────────────────────────────── */
+    .card { background: #1e293b; border-radius: 10px; border: 1px solid #334155; padding: 1.2rem; margin-bottom: 1rem; }
+    .card-title { font-size: 0.78rem; font-weight: 600; color: #64748b; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .section-title { font-size: 0.78rem; font-weight: 600; color: #64748b; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ── Stats ───────────────────────────────────────────────────── */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+    .stat-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 1rem; text-align: center; }
+    .stat-number { font-size: 1.8rem; font-weight: 700; color: #F59E0B; }
+    .stat-label { font-size: 0.72rem; color: #64748b; margin-top: 0.2rem; }
+    .stat-sub { font-size: 0.78rem; color: #64748b; }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn { display: inline-block; padding: 0.5rem 1.1rem; border-radius: 6px; font-size: 0.875rem; cursor: pointer; border: none; font-weight: 600; text-decoration: none; }
+    .btn-primary { background: #F59E0B; color: #0f172a; }
+    .btn-primary:hover { background: #D97706; text-decoration: none; color: #0f172a; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; text-decoration: none; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-secondary:hover { background: #475569; text-decoration: none; color: #e2e8f0; }
+    .btn-success { background: #16a34a; color: white; }
+    .btn-success:hover { background: #15803d; text-decoration: none; }
+    .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.78rem; }
+
+    /* ── Tables ──────────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid #1e293b; }
+    th { font-size: 0.68rem; text-transform: uppercase; color: #64748b; background: #0f172a; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.03); }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ── Badges ──────────────────────────────────────────────────── */
+    .badge-actif { background: #14532d; color: #86efac; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+    .badge-inactif { background: #7f1d1d; color: #fca5a5; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+    .badge-plan { background: #312e81; color: #a5b4fc; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+    .badge-attente_paiement { background: #78350f; color: #fde68a; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
+    .badge-attente { background: #78350f; color: #fde68a; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
+    .badge-payee { background: #1e3a5f; color: #93c5fd; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
+    .badge-en_preparation { background: #312e81; color: #a5b4fc; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
+    .badge-livree { background: #14532d; color: #86efac; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
+    .badge-annulee { background: #7f1d1d; color: #fca5a5; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
+
+    /* ── Messages flash ──────────────────────────────────────────── */
+    .messages { list-style: none; margin-bottom: 1rem; }
+    .messages li { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .messages .success { background: #14532d; color: #86efac; border: 1px solid #16a34a; }
+    .messages .error { background: #7f1d1d; color: #fca5a5; border: 1px solid #dc2626; }
+    .messages .warning { background: #78350f; color: #fde68a; border: 1px solid #d97706; }
+
+    /* ── Info grid (boutique detail) ─────────────────────────────── */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media(max-width:600px){ .info-grid { grid-template-columns: 1fr; } }
+    .info-item label { font-size: 0.78rem; color: #64748b; display: block; margin-bottom: 0.15rem; }
+    .info-item span { font-size: 0.95rem; color: #e2e8f0; }
+
+    /* ── Shop header ─────────────────────────────────────────────── */
+    .shop-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+    .shop-header h1 { font-size: 1.4rem; color: #F59E0B; margin-bottom: 0.2rem; }
+    .shop-meta { font-size: 0.85rem; color: #64748b; }
+    .shop-meta span { margin-right: 1rem; }
+
+    /* ── Form inputs ─────────────────────────────────────────────── */
+    input[type="text"], input[type="password"], select, textarea {
+      background: #0f172a; border: 1px solid #334155; color: #e2e8f0;
+      border-radius: 6px; padding: 0.55rem 0.85rem; font-size: 0.9rem;
+    }
+    input[type="text"]:focus, input[type="password"]:focus, select:focus {
+      outline: none; border-color: #F59E0B;
+    }
+    select option { background: #1e293b; }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ── Topbar ──────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="brand">
+    Fëgg<span>Jaay</span>
+    <span class="admin-badge">Super Admin</span>
+  </div>
+  <span style="font-size:0.82rem;color:#64748b;">{{ request.user.username }}</span>
+</div>
+
+<!-- ── Nav ────────────────────────────────────────────────────── -->
+<div class="admin-nav">
+  {% url 'dashboard:superadmin_accueil' as u_sa %}
+  <a href="{{ u_sa }}" class="{% if request.path == u_sa %}active{% endif %}">
+    Tableau de bord
+  </a>
+  <span class="sep"></span>
+  <a href="{% url 'dashboard:accueil' %}" class="nav-merchant">↗ Vue commerçant</a>
+  <a href="{% url 'dashboard:logout' %}" class="nav-danger">Déconnexion</a>
+</div>
+
+<!-- ── Contenu ──────────────────────────────────────────────── -->
+<div class="container">
+  {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+    <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

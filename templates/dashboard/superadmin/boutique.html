@@ -1,29 +1,11 @@
-{% extends "dashboard/base.html" %}
+{% extends "dashboard/superadmin/base.html" %}
 {% load humanize %}
 
-{% block title %}{{ shop.nom }} — Super Admin{% endblock %}
+{% block title %}{{ shop.nom }} — Admin{% endblock %}
 
 {% block extra_css %}
 <style>
-  .shop-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
-  .shop-header h1 { font-size: 1.4rem; color: #4A1D96; margin-bottom: 0.2rem; }
-  .shop-meta { font-size: 0.85rem; color: #888; }
-  .shop-meta span { margin-right: 1rem; }
-  .badge-actif { background: #d4edda; color: #155724; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.8rem; font-weight: 600; }
-  .badge-inactif { background: #f8d7da; color: #721c24; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.8rem; font-weight: 600; }
-  .badge-plan { background: #e2d9f3; color: #6f42c1; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.8rem; font-weight: 600; }
-  .actions-row { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center; }
-  .section-title { font-size: 1rem; font-weight: 600; color: #555; margin-bottom: 0.8rem; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .badge-attente_paiement { background: #fff3cd; color: #856404; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
-  .badge-payee { background: #cce5ff; color: #004085; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
-  .badge-en_preparation { background: #e2d9f3; color: #6f42c1; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
-  .badge-livree { background: #d4edda; color: #155724; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
-  .badge-annulee { background: #f8d7da; color: #721c24; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.75rem; }
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  @media(max-width:600px){ .info-grid { grid-template-columns: 1fr; } }
-  .info-item label { font-size:0.8rem; color:#aaa; display:block; }
-  .info-item span { font-size:0.95rem; color:#333; }
 </style>
 {% endblock %}
 
@@ -118,8 +100,8 @@
     <!-- WhatsApp -->
     <div style="margin-bottom:1rem;">
       {% if shop.wa_phone_id %}
-        <p style="font-size:0.82rem;color:#888;margin-bottom:0.5rem;">
-          📱 Meta API — Phone ID : <code>{{ shop.wa_phone_id|truncatechars:24 }}</code>
+        <p style="font-size:0.82rem;color:#94a3b8;margin-bottom:0.5rem;">
+          📱 Meta API — Phone ID : <code style="color:#a5b4fc;">{{ shop.wa_phone_id|truncatechars:24 }}</code>
         </p>
         {% if platform_wa_active %}
         <form method="post" action="{% url 'dashboard:superadmin_activer_plateforme' shop.pk %}" style="display:inline;">
@@ -135,12 +117,12 @@
         </a>
       {% else %}
         {% if platform_wa_active %}
-          <p style="font-size:0.85rem;font-weight:600;color:#16a34a;margin-bottom:0.4rem;">
+          <p style="font-size:0.85rem;font-weight:600;color:#86efac;margin-bottom:0.4rem;">
             ✅ WhatsApp plateforme actif ({{ platform_wa_number }})
           </p>
-          <p style="font-size:0.8rem;color:#888;">Aucune config manuelle requise — le bot est opérationnel.</p>
+          <p style="font-size:0.8rem;color:#64748b;">Aucune config manuelle requise — le bot est opérationnel.</p>
         {% else %}
-          <p style="font-size:0.85rem;color:#e74c3c;margin-bottom:0.5rem;">⚠️ Aucun WhatsApp configuré</p>
+          <p style="font-size:0.85rem;color:#fca5a5;margin-bottom:0.5rem;">⚠️ Aucun WhatsApp configuré</p>
           <a href="{% url 'dashboard:superadmin_setup_whatsapp' shop.pk %}" class="btn btn-primary" style="background:#25D366;font-size:0.85rem;">
             📱 Configurer Meta API (360dialog)
           </a>

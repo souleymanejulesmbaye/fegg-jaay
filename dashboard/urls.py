@@ -66,6 +66,7 @@ urlpatterns = [
     path("automatisation/", views.tableau_bord_automatisation, name="automatisation"),
 
     # Super-Admin
+    path("superadmin/login/", views.superadmin_login, name="superadmin_login"),
     path("superadmin/", views.superadmin_accueil, name="superadmin_accueil"),
     path("superadmin/boutique/<uuid:boutique_id>/", views.superadmin_boutique, name="superadmin_boutique"),
     path("superadmin/boutique/<uuid:boutique_id>/toggle/", views.superadmin_toggle_boutique, name="superadmin_toggle"),
