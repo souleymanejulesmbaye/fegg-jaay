@@ -917,13 +917,33 @@ def superadmin_accueil(request):
         .order_by("-created_at")
     )
 
+    aujourd_hui = timezone.now().date()
+    debut_mois = aujourd_hui.replace(day=1)
+    debut_semaine = aujourd_hui - timedelta(days=aujourd_hui.weekday())
+
     stats_globales = {
         "nb_boutiques": Boutique.objects.count(),
         "nb_boutiques_actives": Boutique.objects.filter(actif=True).count(),
+        "nb_boutiques_inactives": Boutique.objects.filter(actif=False).count(),
+        "nb_boutiques_wa_dedie": Boutique.objects.exclude(wa_phone_id="").exclude(wa_phone_id__isnull=True).count(),
+        "nb_boutiques_starter": Boutique.objects.filter(plan="starter").count(),
+        "nb_boutiques_business": Boutique.objects.filter(plan="business").count(),
+        "nb_boutiques_premium": Boutique.objects.filter(plan="premium").count(),
         "nb_commandes": Commande.objects.count(),
+        "nb_commandes_attente": Commande.objects.filter(statut="attente_paiement").count(),
+        "nb_commandes_aujourd_hui": Commande.objects.filter(created_at__date=aujourd_hui).count(),
+        "nb_commandes_semaine": Commande.objects.filter(created_at__date__gte=debut_semaine).count(),
         "nb_clients": Client.objects.count(),
         "ca_total": Commande.objects.filter(
             statut__in=["payee", "en_preparation", "livree"]
+        ).aggregate(total=Sum("montant_total"))["total"] or 0,
+        "ca_mois": Commande.objects.filter(
+            statut__in=["payee", "en_preparation", "livree"],
+            created_at__date__gte=debut_mois,
+        ).aggregate(total=Sum("montant_total"))["total"] or 0,
+        "ca_semaine": Commande.objects.filter(
+            statut__in=["payee", "en_preparation", "livree"],
+            created_at__date__gte=debut_semaine,
         ).aggregate(total=Sum("montant_total"))["total"] or 0,
     }
 
@@ -993,6 +1013,17 @@ def superadmin_toggle_boutique(request, boutique_id):
     etat = "activée" if shop.actif else "désactivée"
     messages.success(request, f"Boutique « {shop.nom} » {etat}.")
     return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+
+@_superuser_required
+@require_POST
+def superadmin_supprimer_boutique(request, boutique_id):
+    """Supprime définitivement une boutique et toutes ses données."""
+    shop = get_object_or_404(Boutique, pk=boutique_id)
+    nom = shop.nom
+    shop.delete()
+    messages.success(request, f"Boutique « {nom} » supprimée définitivement.")
+    return redirect("dashboard:superadmin_accueil")
 
 
 @_superuser_required

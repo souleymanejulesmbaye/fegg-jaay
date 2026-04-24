@@ -70,6 +70,7 @@ urlpatterns = [
     path("superadmin/", views.superadmin_accueil, name="superadmin_accueil"),
     path("superadmin/boutique/<uuid:boutique_id>/", views.superadmin_boutique, name="superadmin_boutique"),
     path("superadmin/boutique/<uuid:boutique_id>/toggle/", views.superadmin_toggle_boutique, name="superadmin_toggle"),
+    path("superadmin/boutique/<uuid:boutique_id>/supprimer/", views.superadmin_supprimer_boutique, name="superadmin_supprimer"),
     path("superadmin/boutique/<uuid:boutique_id>/plan/", views.superadmin_changer_plan, name="superadmin_plan"),
     path("superadmin/boutique/<uuid:boutique_id>/setup-whatsapp/", views.superadmin_setup_whatsapp, name="superadmin_setup_whatsapp"),
     path("superadmin/boutique/<uuid:boutique_id>/activer-plateforme/", views.superadmin_activer_plateforme, name="superadmin_activer_plateforme"),

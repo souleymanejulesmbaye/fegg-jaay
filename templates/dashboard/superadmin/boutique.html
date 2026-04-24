@@ -97,6 +97,15 @@
       {% endif %}
     </form>
 
+    <!-- Supprimer boutique -->
+    <form method="post" action="{% url 'dashboard:superadmin_supprimer' shop.pk %}" style="margin-bottom:1rem;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger" style="background:#7f1d1d;border:1px solid #dc2626;"
+              onclick="return confirm('⚠️ SUPPRIMER définitivement « {{ shop.nom }} » ?\n\nToutes les commandes, clients et produits seront perdus. Cette action est irréversible.')">
+        🗑️ Supprimer la boutique
+      </button>
+    </form>
+
     <!-- WhatsApp -->
     <div style="margin-bottom:1rem;">
       {% if shop.wa_phone_id %}

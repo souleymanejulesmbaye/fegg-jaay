@@ -17,24 +17,52 @@
   <h1>Tableau de bord plateforme</h1>
 </div>
 
-<!-- Stats globales -->
-<div class="stats-grid" style="margin-bottom:1.5rem;">
+<!-- Stats globales — ligne 1 -->
+<div class="stats-grid" style="margin-bottom:0.75rem;">
   <div class="stat-card">
     <div class="stat-number">{{ stats.nb_boutiques }}</div>
     <div class="stat-label">Boutiques totales</div>
-    <div class="stat-sub">{{ stats.nb_boutiques_actives }} actives</div>
+    <div class="stat-sub">
+      <span style="color:#86efac;">{{ stats.nb_boutiques_actives }} actives</span>
+      {% if stats.nb_boutiques_inactives %} · <span style="color:#fca5a5;">{{ stats.nb_boutiques_inactives }} inactives</span>{% endif %}
+    </div>
   </div>
   <div class="stat-card">
     <div class="stat-number">{{ stats.nb_commandes }}</div>
     <div class="stat-label">Commandes totales</div>
+    <div class="stat-sub">
+      {% if stats.nb_commandes_attente %}<span style="color:#fde68a;">{{ stats.nb_commandes_attente }} en attente</span>{% endif %}
+    </div>
   </div>
   <div class="stat-card">
     <div class="stat-number">{{ stats.nb_clients }}</div>
     <div class="stat-label">Clients enregistrés</div>
+    <div class="stat-sub">{{ stats.nb_commandes_aujourd_hui }} commande(s) auj.</div>
   </div>
   <div class="stat-card">
     <div class="stat-number" style="font-size:1.4rem;">{{ stats.ca_total|intcomma }} F</div>
     <div class="stat-label">CA total (payé)</div>
+    <div class="stat-sub">{{ stats.ca_mois|intcomma }} F ce mois</div>
+  </div>
+</div>
+
+<!-- Stats globales — ligne 2 -->
+<div class="stats-grid" style="margin-bottom:1.5rem;grid-template-columns:repeat(2,1fr);">
+  <div class="stat-card" style="text-align:left;padding:0.8rem 1rem;">
+    <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:0.5rem;">Répartition des plans</div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <span style="font-size:0.9rem;">🔵 <strong>{{ stats.nb_boutiques_starter }}</strong> <span style="color:#64748b;">Starter</span></span>
+      <span style="font-size:0.9rem;">🟣 <strong>{{ stats.nb_boutiques_business }}</strong> <span style="color:#64748b;">Business</span></span>
+      <span style="font-size:0.9rem;">🟡 <strong>{{ stats.nb_boutiques_premium }}</strong> <span style="color:#64748b;">Premium</span></span>
+    </div>
+  </div>
+  <div class="stat-card" style="text-align:left;padding:0.8rem 1rem;">
+    <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:0.5rem;">WhatsApp & revenus</div>
+    <div style="display:flex;gap:1.2rem;flex-wrap:wrap;">
+      <span style="font-size:0.9rem;">📡 <strong>{{ stats.nb_boutiques_wa_dedie }}</strong> <span style="color:#64748b;">WA dédié</span></span>
+      <span style="font-size:0.9rem;">📦 <strong>{{ stats.nb_commandes_semaine }}</strong> <span style="color:#64748b;">cmd cette semaine</span></span>
+      <span style="font-size:0.9rem;">💰 <strong>{{ stats.ca_semaine|intcomma }} F</strong> <span style="color:#64748b;">CA semaine</span></span>
+    </div>
   </div>
 </div>
 
