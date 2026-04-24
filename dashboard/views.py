@@ -36,6 +36,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 
 from django.db.models.functions import TruncDate
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 
@@ -309,7 +310,11 @@ def accueil(request):
 
     # Onboarding : calcul des étapes complètes
     has_products = Produit.objects.filter(boutique=boutique, actif=True).exists()
-    has_wa_config = bool(boutique.wa_phone_id and boutique.wa_token)
+    has_wa_config = (
+        bool(boutique.wa_phone_id and boutique.wa_token)
+        or bool(getattr(settings, "INFOBIP_API_KEY", ""))
+        or bool(getattr(settings, "TWILIO_ACCOUNT_SID", ""))
+    )
     has_tested_bot = MessageLog.objects.filter(boutique=boutique).exists()
     onboarding_steps = [
         {"label": "Boutique créée", "done": True, "url": None},
