@@ -19,20 +19,19 @@
 </form>
 
 <!-- Filtre par statut -->
-<div style="margin-bottom:1.5rem;">
+<div style="margin-bottom:1.5rem;display:flex;flex-wrap:wrap;gap:0.3rem;">
   <a href="{% url 'dashboard:liste_commandes' %}{% if recherche %}?q={{ recherche }}{% endif %}"
-     class="btn {% if not statut_filtre %}btn-primary{% else %}btn-secondary{% endif %}"
-     style="margin-right:0.3rem;">Toutes</a>
+     class="btn {% if not statut_filtre %}btn-primary{% else %}btn-secondary{% endif %}">Toutes</a>
   {% for code, label in statuts %}
   <a href="?statut={{ code }}{% if recherche %}&q={{ recherche }}{% endif %}"
      class="btn {% if statut_filtre == code %}btn-primary{% else %}btn-secondary{% endif %}"
-     style="margin-right:0.3rem;font-size:0.8rem;">{{ label }}</a>
+     style="font-size:0.8rem;">{{ label }}</a>
   {% endfor %}
 </div>
 
-<div class="card">
+<div class="card" style="overflow-x:auto;">
   {% if commandes %}
-  <table>
+  <table style="min-width:520px;">
     <thead>
       <tr>
         <th>Réf.</th>

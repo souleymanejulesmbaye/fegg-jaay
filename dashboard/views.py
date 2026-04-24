@@ -931,11 +931,25 @@ def superadmin_boutique(request, boutique_id):
         .order_by("-created_at")[:10]
     )
 
+    infobip_num = getattr(settings, "INFOBIP_SENDER_NUMBER", "")
+    twilio_from = getattr(settings, "TWILIO_WHATSAPP_FROM", "")
+    platform_wa_active = bool(
+        getattr(settings, "INFOBIP_API_KEY", "") or getattr(settings, "TWILIO_ACCOUNT_SID", "")
+    )
+    if infobip_num:
+        platform_wa_number = f"+{infobip_num.lstrip('+')}"
+    elif twilio_from:
+        platform_wa_number = "+" + twilio_from.replace("whatsapp:+", "").replace("whatsapp:", "").lstrip("+")
+    else:
+        platform_wa_number = "—"
+
     return render(request, "dashboard/superadmin/boutique.html", {
         "shop": shop,
         "stats": stats,
         "dernieres_commandes": dernieres_commandes,
         "plans": Boutique.PLAN_CHOICES,
+        "platform_wa_active": platform_wa_active,
+        "platform_wa_number": platform_wa_number,
     })
 
 
@@ -964,6 +978,18 @@ def superadmin_changer_plan(request, boutique_id):
         messages.success(request, f"Plan mis à jour : {shop.get_plan_display()}.")
     else:
         messages.error(request, "Plan invalide.")
+    return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
+
+
+@_superuser_required
+@require_POST
+def superadmin_activer_plateforme(request, boutique_id):
+    """Bascule la boutique sur le WhatsApp partagé de la plateforme (Infobip/Twilio)."""
+    shop = get_object_or_404(Boutique, pk=boutique_id)
+    shop.wa_phone_id = ""
+    shop.wa_token = ""
+    shop.save(update_fields=["wa_phone_id", "wa_token", "updated_at"])
+    messages.success(request, f"✅ {shop.nom} utilise maintenant le WhatsApp partagé de la plateforme.")
     return redirect("dashboard:superadmin_boutique", boutique_id=boutique_id)
 
 

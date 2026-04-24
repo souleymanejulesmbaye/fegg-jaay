@@ -115,11 +115,37 @@
       {% endif %}
     </form>
 
-    <!-- Configurer WhatsApp -->
+    <!-- WhatsApp -->
     <div style="margin-bottom:1rem;">
-      <a href="{% url 'dashboard:superadmin_setup_whatsapp' shop.pk %}" class="btn btn-primary" style="background:#25D366;border-color:#25D366;display:inline-flex;align-items:center;gap:0.4rem;font-size:0.85rem;">
-        {% if shop.wa_phone_id %}🔄 Reconfigurer WhatsApp{% else %}📱 Configurer WhatsApp{% endif %}
-      </a>
+      {% if shop.wa_phone_id %}
+        <p style="font-size:0.82rem;color:#888;margin-bottom:0.5rem;">
+          📱 Meta API — Phone ID : <code>{{ shop.wa_phone_id|truncatechars:24 }}</code>
+        </p>
+        {% if platform_wa_active %}
+        <form method="post" action="{% url 'dashboard:superadmin_activer_plateforme' shop.pk %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary" style="background:#25D366;font-size:0.82rem;"
+                  onclick="return confirm('Basculer vers le WhatsApp plateforme ({{ platform_wa_number }}) ?')">
+            📲 Utiliser WhatsApp plateforme
+          </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'dashboard:superadmin_setup_whatsapp' shop.pk %}" class="btn btn-secondary" style="font-size:0.82rem;margin-top:0.4rem;display:inline-block;">
+          🔄 Reconfigurer 360dialog
+        </a>
+      {% else %}
+        {% if platform_wa_active %}
+          <p style="font-size:0.85rem;font-weight:600;color:#16a34a;margin-bottom:0.4rem;">
+            ✅ WhatsApp plateforme actif ({{ platform_wa_number }})
+          </p>
+          <p style="font-size:0.8rem;color:#888;">Aucune config manuelle requise — le bot est opérationnel.</p>
+        {% else %}
+          <p style="font-size:0.85rem;color:#e74c3c;margin-bottom:0.5rem;">⚠️ Aucun WhatsApp configuré</p>
+          <a href="{% url 'dashboard:superadmin_setup_whatsapp' shop.pk %}" class="btn btn-primary" style="background:#25D366;font-size:0.85rem;">
+            📱 Configurer Meta API (360dialog)
+          </a>
+        {% endif %}
+      {% endif %}
     </div>
 
     <!-- Changer plan -->

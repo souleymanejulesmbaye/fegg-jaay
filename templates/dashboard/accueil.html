@@ -165,7 +165,7 @@
 
 <!-- Graphiques : commandes + CA + donut statuts -->
 <div class="chart-grid">
-  <div style="display:grid;grid-template-rows:1fr 1fr;gap:1rem;">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
     <div class="card" style="margin-bottom:0;">
       <div class="card-title">Commandes — {{ periode }} derniers jours</div>
       <canvas id="chartCommandes" height="100"></canvas>
@@ -175,12 +175,12 @@
       <canvas id="chartCA" height="100"></canvas>
     </div>
   </div>
-  <div style="display:grid;grid-template-rows:1fr 1fr;gap:1rem;">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
     <div class="card" style="margin-bottom:0;">
       <div class="card-title">Répartition statuts</div>
       <canvas id="chartStatuts" height="130"></canvas>
     </div>
-    <div class="card" style="margin-bottom:0;">
+    <div class="card" style="margin-bottom:0;overflow-x:auto;">
       <div class="card-title">Top produits</div>
       {% if top_produits %}
       <table>
@@ -205,7 +205,7 @@
 
 <!-- Top clients -->
 {% if top_clients %}
-<div class="card" style="margin-bottom:1.5rem;">
+<div class="card" style="margin-bottom:1.5rem;overflow-x:auto;">
   <div class="card-title">Top clients</div>
   <table>
     <thead>
@@ -225,7 +225,7 @@
 {% endif %}
 
 <!-- Dernières commandes -->
-<div class="card">
+<div class="card" style="overflow-x:auto;">
   <div class="card-title">Dernières commandes</div>
   {% if dernieres_commandes %}
   <table>
