@@ -1021,6 +1021,10 @@ def superadmin_supprimer_boutique(request, boutique_id):
     """Supprime définitivement une boutique et toutes ses données."""
     shop = get_object_or_404(Boutique, pk=boutique_id)
     nom = shop.nom
+    # LigneCommande.produit et Commande.client sont PROTECT — on supprime dans l'ordre
+    LigneCommande.objects.filter(commande__boutique=shop).delete()
+    Commande.objects.filter(boutique=shop).delete()
+    Produit.objects.filter(boutique=shop).delete()
     shop.delete()
     messages.success(request, f"Boutique « {nom} » supprimée définitivement.")
     return redirect("dashboard:superadmin_accueil")
