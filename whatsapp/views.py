@@ -3,10 +3,11 @@ Webhook WhatsApp pour Fëgg Jaay.
 
 Endpoints :
   GET  /wa/webhook/  → vérification du webhook (Meta challenge)
-  POST /wa/webhook/  → réception des messages entrants (Meta API ou Twilio sandbox)
+  POST /wa/webhook/  → réception des messages entrants
 
 Détection automatique du provider :
-  - Meta API  : Content-Type application/json, champ "object" dans le body
+  - Meta API  : Content-Type application/json, champ "object" == "whatsapp_business_account"
+  - Infobip   : Content-Type application/json, champ "results" (liste)
   - Twilio    : form data avec champ "From"
 """
 
@@ -57,6 +58,9 @@ def _recevoir_message(request):
         if payload.get("object") == "whatsapp_business_account":
             return _recevoir_meta(payload)
 
+        if payload.get("results"):
+            return _recevoir_infobip(payload)
+
     # Twilio : form data
     return _recevoir_twilio(request)
 
@@ -103,6 +107,44 @@ def _recevoir_meta(payload: dict):
 
     except Exception as exc:
         logger.exception("Erreur traitement webhook Meta : %s", exc)
+
+    return HttpResponse("OK", status=200)
+
+
+# ─── Provider Infobip ────────────────────────────────────────────────────────
+
+def _recevoir_infobip(payload: dict):
+    try:
+        for result in payload.get("results", []):
+            from_number = result.get("from", "")
+            to_number = result.get("to", "")
+            message_id = result.get("messageId", "")
+            msg = result.get("message", {})
+            msg_type = msg.get("type", "TEXT").lower()
+
+            if msg_type == "text":
+                contenu = msg.get("text", "")
+            elif msg_type in ("image", "audio", "document", "video"):
+                contenu = msg.get("url", "")
+            else:
+                contenu = ""
+
+            logger.info(
+                "Message Infobip reçu — from=%s to=%s body=%s...",
+                from_number, to_number, contenu[:50],
+            )
+
+            _traiter_message_sync({
+                "provider": "infobip",
+                "boutique_telephone_wa": to_number,
+                "client_telephone": from_number,
+                "wa_message_id": message_id,
+                "type_message": msg_type,
+                "contenu": contenu,
+            })
+
+    except Exception as exc:
+        logger.exception("Erreur traitement webhook Infobip : %s", exc)
 
     return HttpResponse("OK", status=200)
 
@@ -169,17 +211,19 @@ def _traiter_message_sync(msg_data: dict):
             logger.warning("Boutique introuvable pour phone_number_id='%s'.", phone_number_id)
             return
     else:
-        # Twilio sandbox : le numéro To est +14155238886, pas celui de la boutique.
-        # On prend la première boutique active (sandbox = une boutique de test).
         boutique_tel = msg_data.get("boutique_telephone_wa", "")
+        alt_tel = ("+" + boutique_tel) if boutique_tel and not boutique_tel.startswith("+") else boutique_tel.lstrip("+")
         try:
             boutique = Boutique.objects.get(telephone_wa=boutique_tel, actif=True)
         except Boutique.DoesNotExist:
-            boutique = Boutique.objects.filter(actif=True).first()
-            if not boutique:
-                logger.warning("Aucune boutique active trouvée pour '%s'.", boutique_tel)
-                return
-            logger.info("Sandbox Twilio : boutique '%s' sélectionnée par défaut.", boutique.nom)
+            try:
+                boutique = Boutique.objects.get(telephone_wa=alt_tel, actif=True)
+            except Boutique.DoesNotExist:
+                boutique = Boutique.objects.filter(actif=True).first()
+                if not boutique:
+                    logger.warning("Aucune boutique active trouvée pour '%s'.", boutique_tel)
+                    return
+                logger.info("Boutique '%s' sélectionnée par défaut pour '%s'.", boutique.nom, boutique_tel)
 
     # ── Déduplication ────────────────────────────────────────────────────
     if wa_message_id and MessageLog.objects.filter(wa_message_id=wa_message_id).exists():

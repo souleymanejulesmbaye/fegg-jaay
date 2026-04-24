@@ -191,6 +191,11 @@ TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")
 TWILIO_AUTH_TOKEN = config("TWILIO_AUTH_TOKEN", default="")
 TWILIO_WHATSAPP_FROM = config("TWILIO_WHATSAPP_FROM", default="whatsapp:+14155238886")
 
+# ─── Infobip WhatsApp ──────────────────────────────────────────────────────────
+INFOBIP_API_KEY = config("INFOBIP_API_KEY", default="")
+INFOBIP_BASE_URL = config("INFOBIP_BASE_URL", default="api.infobip.com")
+INFOBIP_SENDER_NUMBER = config("INFOBIP_SENDER_NUMBER", default="")
+
 # ─── Logging ──────────────────────────────────────────────────────────────────
 LOGGING = {
     "version": 1,

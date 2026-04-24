@@ -18,6 +18,10 @@ TWILIO_ACCOUNT_SID = getattr(settings, "TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = getattr(settings, "TWILIO_AUTH_TOKEN", "")
 TWILIO_WHATSAPP_FROM = getattr(settings, "TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
 
+INFOBIP_API_KEY = getattr(settings, "INFOBIP_API_KEY", "")
+INFOBIP_BASE_URL = getattr(settings, "INFOBIP_BASE_URL", "api.infobip.com")
+INFOBIP_SENDER_NUMBER = getattr(settings, "INFOBIP_SENDER_NUMBER", "")
+
 
 def _normaliser_telephone(telephone: str) -> str:
     """
@@ -43,6 +47,14 @@ def _get_meta_credentials(boutique: Boutique):
     return None, None
 
 
+def _est_infobip(boutique: Boutique) -> bool:
+    if not INFOBIP_API_KEY or not INFOBIP_SENDER_NUMBER:
+        return False
+    tel = (boutique.telephone_wa or "").lstrip("+")
+    sender = INFOBIP_SENDER_NUMBER.lstrip("+")
+    return tel == sender
+
+
 def envoyer_message_texte(
     boutique: Boutique,
     telephone_destinataire: str,
@@ -50,11 +62,19 @@ def envoyer_message_texte(
 ) -> bool:
     """
     Envoie un message texte WhatsApp.
-    Utilise Meta API (boutique ou plateforme), sinon Twilio sandbox.
+    Priorité : 1) Meta boutique  2) Infobip  3) Meta plateforme  4) Twilio sandbox
     """
-    phone_id, token = _get_meta_credentials(boutique)
-    if phone_id and token:
-        return _envoyer_meta_avec(phone_id, token, telephone_destinataire, texte, boutique.nom)
+    if boutique.wa_phone_id and boutique.wa_token:
+        return _envoyer_meta_avec(boutique.wa_phone_id, boutique.wa_token, telephone_destinataire, texte, boutique.nom)
+
+    if _est_infobip(boutique):
+        return _envoyer_infobip(boutique, telephone_destinataire, texte)
+
+    platform_token = getattr(settings, "WA_PLATFORM_TOKEN", "")
+    platform_phone_id = getattr(settings, "WA_PLATFORM_PHONE_NUMBER_ID", "")
+    if platform_token and platform_phone_id:
+        return _envoyer_meta_avec(platform_phone_id, platform_token, telephone_destinataire, texte, boutique.nom)
+
     return _envoyer_twilio(boutique, telephone_destinataire, texte)
 
 
@@ -81,6 +101,34 @@ def _envoyer_meta_avec(phone_id: str, token: str, telephone_destinataire: str, t
         logger.error("Meta: erreur HTTP %d à %s : %s", exc.response.status_code, t, exc.response.text[:300])
     except Exception as exc:
         logger.exception("Meta: erreur inattendue à %s : %s", t, exc)
+    return False
+
+
+def _envoyer_infobip(boutique: Boutique, telephone_destinataire: str, texte: str) -> bool:
+    t = telephone_destinataire.strip().lstrip("+")
+    url = f"https://{INFOBIP_BASE_URL}/whatsapp/1/message/text"
+    headers = {
+        "Authorization": f"App {INFOBIP_API_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    payload = {
+        "from": INFOBIP_SENDER_NUMBER.lstrip("+"),
+        "to": t,
+        "content": {"text": texte},
+    }
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            logger.info("Infobip: message envoyé à %s (boutique %s)", t, boutique.nom)
+            return True
+    except httpx.TimeoutException:
+        logger.error("Infobip: timeout envoi à %s", t)
+    except httpx.HTTPStatusError as exc:
+        logger.error("Infobip: erreur HTTP %d à %s : %s", exc.response.status_code, t, exc.response.text[:300])
+    except Exception as exc:
+        logger.exception("Infobip: erreur inattendue à %s : %s", t, exc)
     return False
 
 
