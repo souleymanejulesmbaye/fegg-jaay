@@ -244,8 +244,13 @@ def _traiter_message_sync(msg_data: dict):
         tel_norm = client_tel.lstrip("+")
         prop_norm = boutique.proprietaire_tel.lstrip("+")
         if tel_norm == prop_norm:
-            from .dashboard_wa import traiter_message_commercant
-            reponse = traiter_message_commercant(boutique, contenu)
+            from .bot_engine_commercant import traiter_message_commercant
+            reponse, action_requise = traiter_message_commercant(
+                boutique=boutique,
+                message=contenu,
+                type_message=type_msg,
+                media_url=contenu if type_msg in ("image", "audio", "document", "video") else None,
+            )
             envoyer_message_texte(boutique, client_tel, reponse, via=provider)
             logger.info("Dashboard commerçant — boutique=%s msg=%s...", boutique.nom, contenu[:40])
             return
@@ -273,7 +278,7 @@ def _traiter_message_sync(msg_data: dict):
         return
 
     # ── Bot IA : traiter le message et répondre ───────────────────────────
-    reponse = traiter_message(
+    reponse, envoyer_catalogue = traiter_message(
         boutique=boutique,
         client=client,
         message=contenu,
@@ -289,4 +294,10 @@ def _traiter_message_sync(msg_data: dict):
     )
 
     envoyer_message_texte(boutique, client_tel, reponse, via=provider)
+
+    # Si c'est une demande de catalogue, envoyer les images
+    if envoyer_catalogue:
+        from .sender import envoyer_catalogue_avec_images
+        envoyer_catalogue_avec_images(boutique, client_tel)
+
     logger.info("Réponse envoyée à %s : %s...", client_tel, reponse[:80])

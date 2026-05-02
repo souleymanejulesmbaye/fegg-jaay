@@ -6,8 +6,8 @@
 <div class="row justify-content-center">
     <div class="col-md-10">
         <div class="card shadow">
-            <div class="card-header bg-info text-white">
-                <h4 class="mb-0">⏳ Configuration WhatsApp en cours - {{ boutique.nom }}</h4>
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">📱 Configuration WhatsApp - {{ boutique.nom }}</h4>
             </div>
             <div class="card-body">
 
@@ -42,15 +42,14 @@
                                             {% if etape_config >= 1 %}✅{% else %}1️⃣{% endif %}
                                         </div>
                                         <div class="timeline-content">
-                                            <h6>Connectez-vous à votre dashboard</h6>
+                                            <h6>Configurez votre nom d'affichage</h6>
                                             <p class="text-muted">
-                                                <a href="{% url 'dashboard:login' %}" target="_blank">
-                                                    🔗 Ouvrir le dashboard
-                                                </a>
+                                                C'est le nom que vos clients verront sur WhatsApp.
                                             </p>
                                             <ul class="small">
-                                                <li>Email : {{ boutique.proprietaire.email }}</li>
-                                                <li>Mot de passe : celui que vous avez choisi</li>
+                                                <li>Exemple : SALMON SHOP, TASH PRESTIGE</li>
+                                                <li>Maximum 20 caractères</li>
+                                                <li>Lettres, chiffres et espaces uniquement</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -61,14 +60,14 @@
                                             {% if etape_config >= 2 %}✅{% else %}2️⃣{% endif %}
                                         </div>
                                         <div class="timeline-content">
-                                            <h6>Configurez votre numéro WhatsApp</h6>
+                                            <h6>Validez votre numéro WhatsApp</h6>
                                             <p class="text-muted">
                                                 Numéro à configurer : <strong>{{ boutique.telephone_wa }}</strong>
                                             </p>
                                             <ul class="small">
-                                                <li>Allez dans "Configuration WhatsApp"</li>
-                                                <li>Entrez le nom d'affichage</li>
-                                                <li>Recevez et validez le code SMS</li>
+                                                <li>Vous recevrez un code SMS</li>
+                                                <li>Entrez le code ci-dessous</li>
+                                                <li>Code valide 15 minutes</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -133,19 +132,71 @@
                     </div>
                 </div>
 
-                <!-- Bouton d'action -->
+                <!-- Formulaire de configuration -->
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="card">
                             <div class="card-body">
-                                <h6>🚀 Commencer la configuration</h6>
-                                <p class="text-muted">
-                                    Cliquez sur le bouton ci-dessous pour configurer votre numéro WhatsApp.
-                                </p>
-                                <a href="{% url 'dashboard:config_infobip' slug=boutique.slug %}"
-                                   class="btn btn-primary btn-lg">
-                                    ⚙️ Configurer WhatsApp maintenant
-                                </a>
+                                <h6>⚙️ Configuration</h6>
+
+                                {% if etape_config < 3 %}
+                                    <form method="post">
+                                        {% csrf_token %}
+
+                                        <!-- Étape 1 : Nom d'affichage -->
+                                        <div class="mb-3">
+                                            <label class="form-label">📝 Nom d'affichage WhatsApp</label>
+                                            <input type="text" name="display_name" class="form-control"
+                                                   placeholder="Ex: SALMON SHOP"
+                                                   value="{{ boutique.infobip_display_name|default:boutique.nom }}"
+                                                   maxlength="20">
+                                            <small class="text-muted">
+                                                C'est le nom que vos clients verront sur WhatsApp
+                                            </small>
+                                        </div>
+
+                                        <!-- Étape 2 : Code de validation -->
+                                        <div class="mb-3">
+                                            <label class="form-label">🔐 Code de validation SMS</label>
+                                            <div class="input-group">
+                                                <input type="text" name="code" class="form-control"
+                                                       placeholder="123456"
+                                                       pattern="[0-9]{6}"
+                                                       maxlength="6"
+                                                       required>
+                                                <button type="submit" name="action" value="demarrer_config"
+                                                        class="btn btn-outline-primary">
+                                                    📱 Recevoir le code
+                                                </button>
+                                            </div>
+                                            <small class="text-muted">
+                                                Entrez le code à 6 chiffres reçu par SMS
+                                            </small>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" name="action" value="valider_code"
+                                                    class="btn btn-success">
+                                                ✅ Valider la configuration
+                                            </button>
+                                            <button type="submit" name="action" value="renvoyer_code"
+                                                    class="btn btn-outline-secondary">
+                                                🔄 Renvoyer le code
+                                            </button>
+                                        </div>
+                                    </form>
+                                {% else %}
+                                    <div class="alert alert-success">
+                                        <h5>🎉 Configuration terminée !</h5>
+                                        <p class="mb-0">
+                                            Votre bot WhatsApp est maintenant actif.
+                                            Vos clients peuvent vous contacter au <strong>{{ boutique.telephone_wa }}</strong>.
+                                        </p>
+                                    </div>
+                                    <a href="{% url 'dashboard:accueil' %}" class="btn btn-primary">
+                                        🏠 Aller au dashboard
+                                    </a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

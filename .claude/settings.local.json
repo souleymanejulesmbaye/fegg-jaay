@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir \"c:\\\\Users\\\\soule\\\\OneDrive\\\\Documents\\\\fegg_jaay\")"
+      "Bash(dir \"c:\\\\Users\\\\soule\\\\OneDrive\\\\Documents\\\\fegg_jaay\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "WebSearch",
+      "Bash(python manage.py makemigrations boutiques)",
+      "Bash(python manage.py migrate)",
+      "Bash(python manage.py shell)",
+      "Bash(python manage.py collectstatic --noinput)",
+      "Bash(dir static\\\\img\\\\*.png)",
+      "Bash(python manage.py check)",
+      "Bash(git *)"
     ]
   }
 }

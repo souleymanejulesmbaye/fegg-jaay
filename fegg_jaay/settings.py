@@ -174,8 +174,8 @@ CACHES = {
 }
 
 # ─── APIs externes ────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
 OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")  # Gardé pour compatibilité
 WA_WEBHOOK_VERIFY_TOKEN = config("WA_WEBHOOK_VERIFY_TOKEN", default="fegg_verify")
 WA_APP_SECRET = config("WA_APP_SECRET", default="")
 WA_PLATFORM_TOKEN = config("WA_PLATFORM_TOKEN", default="")

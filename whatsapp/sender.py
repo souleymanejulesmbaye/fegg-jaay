@@ -48,8 +48,15 @@ def _get_meta_credentials(boutique: Boutique):
 
 
 def _est_infobip(boutique: Boutique) -> bool:
-    if not INFOBIP_API_KEY or not INFOBIP_SENDER_NUMBER:
+    """Vérifie si la boutique utilise Infobip (avec son propre sender ou plateforme)."""
+    if not INFOBIP_API_KEY:
         return False
+
+    # Priorité 1: sender dédié à la boutique
+    if boutique.infobip_sender:
+        return True
+
+    # Priorité 2: téléphone de la boutique correspond au sender global
     tel = (boutique.telephone_wa or "").lstrip("+")
     sender = INFOBIP_SENDER_NUMBER.lstrip("+")
     return tel == sender
@@ -86,6 +93,30 @@ def envoyer_message_texte(
     return _envoyer_twilio(boutique, telephone_destinataire, texte)
 
 
+def envoyer_image(
+    boutique: Boutique,
+    telephone_destinataire: str,
+    image_url: str,
+    caption: str = "",
+    *,
+    via: str = "",
+) -> bool:
+    """
+    Envoie une image WhatsApp.
+    via : force le provider ('infobip', 'meta'). Sinon auto.
+    """
+    if via == "infobip":
+        return _envoyer_image_infobip(boutique, telephone_destinataire, image_url, caption)
+
+    if boutique.wa_phone_id and boutique.wa_token:
+        return _envoyer_image_meta(boutique.wa_phone_id, boutique.wa_token, telephone_destinataire, image_url, caption)
+
+    if _est_infobip(boutique):
+        return _envoyer_image_infobip(boutique, telephone_destinataire, image_url, caption)
+
+    return False
+
+
 def _envoyer_meta_avec(phone_id: str, token: str, telephone_destinataire: str, texte: str, nom_boutique: str = "") -> bool:
     """Envoie via Meta WhatsApp Business API."""
     t = telephone_destinataire.strip().replace("+", "").replace(" ", "")
@@ -113,7 +144,16 @@ def _envoyer_meta_avec(phone_id: str, token: str, telephone_destinataire: str, t
 
 
 def _envoyer_infobip(boutique: Boutique, telephone_destinataire: str, texte: str) -> bool:
+    """Envoie via Infobip avec le sender de la boutique ou le sender global."""
     t = telephone_destinataire.strip().lstrip("+")
+
+    # Utiliser le sender de la boutique si configuré, sinon le sender global
+    sender = boutique.infobip_sender.lstrip("+") if boutique.infobip_sender else INFOBIP_SENDER_NUMBER.lstrip("+")
+
+    if not sender:
+        logger.error("Infobip: aucun sender configuré pour la boutique %s", boutique.nom)
+        return False
+
     url = f"https://{INFOBIP_BASE_URL}/whatsapp/1/message/text"
     headers = {
         "Authorization": f"App {INFOBIP_API_KEY}",
@@ -121,7 +161,7 @@ def _envoyer_infobip(boutique: Boutique, telephone_destinataire: str, texte: str
         "Accept": "application/json",
     }
     payload = {
-        "from": INFOBIP_SENDER_NUMBER.lstrip("+"),
+        "from": sender,
         "to": t,
         "content": {"text": texte},
     }
@@ -129,7 +169,7 @@ def _envoyer_infobip(boutique: Boutique, telephone_destinataire: str, texte: str
         with httpx.Client(timeout=10.0) as client:
             response = client.post(url, headers=headers, json=payload)
             response.raise_for_status()
-            logger.info("Infobip: message envoyé à %s (boutique %s)", t, boutique.nom)
+            logger.info("Infobip: message envoyé à %s (boutique %s, sender %s)", t, boutique.nom, sender)
             return True
     except httpx.TimeoutException:
         logger.error("Infobip: timeout envoi à %s", t)
@@ -137,6 +177,73 @@ def _envoyer_infobip(boutique: Boutique, telephone_destinataire: str, texte: str
         logger.error("Infobip: erreur HTTP %d à %s : %s", exc.response.status_code, t, exc.response.text[:300])
     except Exception as exc:
         logger.exception("Infobip: erreur inattendue à %s : %s", t, exc)
+    return False
+
+
+def _envoyer_image_infobip(boutique: Boutique, telephone_destinataire: str, image_url: str, caption: str = "") -> bool:
+    """Envoie une image via Infobip."""
+    t = telephone_destinataire.strip().lstrip("+")
+    sender = boutique.infobip_sender.lstrip("+") if boutique.infobip_sender else INFOBIP_SENDER_NUMBER.lstrip("+")
+
+    if not sender:
+        logger.error("Infobip: aucun sender configuré pour la boutique %s", boutique.nom)
+        return False
+
+    url = f"https://{INFOBIP_BASE_URL}/whatsapp/1/message/image"
+    headers = {
+        "Authorization": f"App {INFOBIP_API_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    payload = {
+        "from": sender,
+        "to": t,
+        "content": {
+            "imageUrl": image_url,
+            "text": caption,
+        },
+    }
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            logger.info("Infobip: image envoyée à %s (boutique %s)", t, boutique.nom)
+            return True
+    except httpx.TimeoutException:
+        logger.error("Infobip: timeout envoi image à %s", t)
+    except httpx.HTTPStatusError as exc:
+        logger.error("Infobip: erreur HTTP %d à %s : %s", exc.response.status_code, t, exc.response.text[:300])
+    except Exception as exc:
+        logger.exception("Infobip: erreur inattendue à %s : %s", t, exc)
+    return False
+
+
+def _envoyer_image_meta(phone_id: str, token: str, telephone_destinataire: str, image_url: str, caption: str = "") -> bool:
+    """Envoie une image via Meta WhatsApp Business API."""
+    t = telephone_destinataire.strip().replace("+", "")
+    url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": t,
+        "type": "image",
+        "image": {
+            "link": image_url,
+            "caption": caption,
+        },
+    }
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            logger.info("Meta: image envoyée à %s", t)
+            return True
+    except httpx.TimeoutException:
+        logger.error("Meta: timeout envoi image à %s", t)
+    except httpx.HTTPStatusError as exc:
+        logger.error("Meta: erreur HTTP %d à %s : %s", exc.response.status_code, t, exc.response.text[:300])
+    except Exception as exc:
+        logger.exception("Meta: erreur inattendue à %s : %s", t, exc)
     return False
 
 
@@ -262,6 +369,33 @@ def envoyer_otp(boutique: Boutique, telephone: str, code: str) -> bool:
         f"Ce code expire dans 10 minutes. Ne le partagez pas."
     )
     return envoyer_message_texte(boutique=boutique, telephone_destinataire=telephone, texte=message)
+
+
+def envoyer_catalogue_avec_images(boutique: Boutique, telephone_destinataire: str) -> bool:
+    """
+    Envoie le catalogue avec les images des produits.
+    Envoie un message texte avec la liste, puis les images une par une.
+    """
+    produits = boutique.produits.filter(actif=True, stock__gt=0).order_by("nom")
+    if not produits.exists():
+        message = "❌ Aucun produit disponible en ce moment."
+        return envoyer_message_texte(boutique, telephone_destinataire, message)
+
+    # Message d'introduction
+    message = f"📦 *Catalogue {boutique.nom}*\n\n"
+    for i, p in enumerate(produits, 1):
+        message += f"{i}. {p.nom} - {p.prix_formate}\n"
+
+    message += f"\nTotal : {len(produits)} produits disponibles"
+    envoyer_message_texte(boutique, telephone_destinataire, message)
+
+    # Envoyer les images une par une
+    for p in produits:
+        if p.photo:
+            caption = f"{p.nom}\n💰 {p.prix_formate}\n📊 Stock : {p.stock}"
+            envoyer_image(boutique, telephone_destinataire, p.photo.url, caption)
+
+    return True
 
 
 def notifier_alerte_stock(boutique: Boutique, produit) -> bool:

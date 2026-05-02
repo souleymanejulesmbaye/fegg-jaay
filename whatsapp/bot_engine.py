@@ -4,7 +4,7 @@ Moteur de traitement IA — Fëgg Jaay.
 Responsabilités :
   1. Construire le system prompt avec catalogue + stock + infos client
   2. Récupérer l'historique des derniers messages du client
-  3. Appeler Claude API (claude-haiku pour messages simples)
+  3. Appeler GPT-4 (OpenAI) pour des réponses intelligentes
   4. Parser la réponse JSON structurée
   5. Exécuter l'action métier (créer commande, annuler, adresse livraison…)
   6. Retourner le texte de réponse à envoyer au client
@@ -15,7 +15,7 @@ import logging
 import re
 from typing import Optional
 
-import anthropic
+from openai import OpenAI
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -24,9 +24,9 @@ from boutiques.models import Boutique, Client, Commande, LigneCommande, MessageL
 
 logger = logging.getLogger(__name__)
 
-# Modèles Claude utilisés
-MODEL_SIMPLE = "claude-haiku-4-5-20251001"   # messages catalogue, questions simples
-MODEL_COMPLEXE = "claude-sonnet-4-6"          # analyse commandes complexes, erreurs
+# Modèles OpenAI utilisés
+MODEL_SIMPLE = "gpt-4o-mini"   # messages catalogue, questions simples
+MODEL_COMPLEXE = "gpt-4o"          # analyse commandes complexes, erreurs
 
 
 SYSTEM_PROMPT_TEMPLATE = """Tu es l'assistant WhatsApp de la boutique "{nom_boutique}" au Sénégal.
@@ -95,11 +95,14 @@ def traiter_message(
     client: Client,
     message: str,
     type_message: str = "texte",
-) -> str:
+) -> tuple[str, bool]:
     """
     Point d'entrée principal du moteur IA.
 
-    Retourne le texte de la réponse à envoyer au client via WhatsApp.
+    Retourne (reponse, envoyer_catalogue) où :
+    - reponse : le texte de réponse à envoyer au client
+    - envoyer_catalogue : True si le catalogue avec images doit être envoyé
+
     En cas d'erreur, retourne un message d'excuse générique.
     """
     try:
@@ -126,16 +129,16 @@ def traiter_message(
         system_prompt = _construire_system_prompt(boutique, client)
         historique = _get_historique(boutique, client.telephone)
 
-        # 2. Appel Claude
-        reponse_claude = _appeler_claude(system_prompt, historique, message)
+        # 2. Appel GPT-4
+        reponse_gpt4 = _appeler_gpt4(system_prompt, historique, message)
 
         # 3. Parser la réponse
-        parsed = _parser_reponse(reponse_claude)
+        parsed = _parser_reponse(reponse_gpt4)
 
         # 4. Exécuter l'action métier si nécessaire
-        texte_reponse = _executer_action(boutique, client, parsed, message)
+        texte_reponse, envoyer_catalogue = _executer_action(boutique, client, parsed, message)
 
-        return texte_reponse
+        return (texte_reponse, envoyer_catalogue)
 
     except anthropic.APIError as exc:
         logger.error("Erreur API Claude : %s", exc)
@@ -178,32 +181,39 @@ def _get_historique(boutique: Boutique, telephone: str, nb_messages: int = 10) -
     return messages
 
 
-# ─── Appel Claude API ─────────────────────────────────────────────────────────
+# ─── Appel GPT-4 (OpenAI) ─────────────────────────────────────────────────────────
 
-def _appeler_claude(
+def _appeler_gpt4(
     system_prompt: str,
     historique: list[dict],
     message_actuel: str,
     modele: str = MODEL_SIMPLE,
 ) -> str:
-    """Appelle Claude et retourne le texte brut de la réponse."""
+    """Appelle GPT-4 et retourne le texte brut de la réponse."""
 
-    # MODE SIMULATION — à retirer quand les crédits Anthropic seront disponibles
-    if not settings.ANTHROPIC_API_KEY or settings.ANTHROPIC_API_KEY == "sk-ant-VOTRE_CLE_ICI":
+    # MODE SIMULATION — à retirer quand les crédits OpenAI seront disponibles
+    if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY == "sk-VOTRE_CLE_ICI":
         return _simuler_reponse(message_actuel, system_prompt)
 
     try:
-        client_anthropic = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        messages = historique + [{"role": "user", "content": message_actuel}]
-        response = client_anthropic.messages.create(
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+        # Construire les messages pour OpenAI
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(historique)
+        messages.append({"role": "user", "content": message_actuel})
+
+        response = client.chat.completions.create(
             model=modele,
-            max_tokens=1024,
-            system=system_prompt,
             messages=messages,
+            max_tokens=1024,
+            temperature=0.7,
         )
-        return response.content[0].text
-    except anthropic.APIError:
-        logger.warning("Crédits insuffisants — bascule en mode simulation.")
+
+        return response.choices[0].message.content
+
+    except Exception as exc:
+        logger.error("Erreur API OpenAI : %s", exc)
         return _simuler_reponse(message_actuel, system_prompt)
 
 
@@ -478,10 +488,10 @@ def _executer_action(
     client: Client,
     parsed: dict,
     message_original: str,
-) -> str:
+) -> tuple[str, bool]:
     """
     Selon l'intent détecté, exécute l'action métier appropriée
-    et retourne le texte de réponse final pour le client.
+    et retourne (texte_reponse, envoyer_catalogue).
     """
     intent = parsed.get("intent", "autre")
     reponse_ia = parsed.get("reponse", "")
@@ -503,8 +513,12 @@ def _executer_action(
     if intent == "annulation":
         return _traiter_annulation(boutique, client, langue)
 
-    # catalogue, livraison, autre → on retourne directement la réponse IA
-    return reponse_ia
+    # catalogue → envoyer les images
+    if intent == "catalogue":
+        return (reponse_ia, True)
+
+    # livraison, autre → on retourne directement la réponse IA
+    return (reponse_ia, False)
 
 
 # ─── Traitement commande (multi-produits) ─────────────────────────────────────
@@ -514,7 +528,7 @@ def _traiter_commande(
     client: Client,
     parsed: dict,
     langue: str,
-) -> str:
+) -> tuple[str, bool]:
     """
     Crée une commande avec plusieurs lignes (multi-produits).
     Gère le stock avec SELECT FOR UPDATE.
@@ -522,7 +536,7 @@ def _traiter_commande(
     produits_list = parsed.get("produits", [])
 
     if not produits_list:
-        return parsed.get("reponse", "")
+        return (parsed.get("reponse", ""), False)
 
     try:
         with transaction.atomic():
@@ -596,29 +610,31 @@ def _traiter_commande(
             if erreurs:
                 reponse += f"\n\n⚠️ Indisponibles : {', '.join(erreurs)}"
 
-            return reponse
+            return (reponse, False)
 
     except Exception as exc:
         logger.exception("Erreur dans _traiter_commande : %s", exc)
-        return _message_erreur(langue)
+        return (_message_erreur(langue), False)
 
 
-def _traiter_paiement(boutique: Boutique, client: Client, langue: str) -> str:
+def _traiter_paiement(boutique: Boutique, client: Client, langue: str) -> tuple[str, bool]:
     """
     Demande le numéro de transaction au client pour enregistrer le paiement.
     """
     if langue == "wo":
         return (
             "Jërejëf ! Bind numéro transaction Wave walla Orange Money bi :\n"
-            "(ex: WV-12345678 walla OM-98765432)"
+            "(ex: WV-12345678 walla OM-98765432)",
+            False,
         )
     return (
         "Merci ! Quel est votre numéro de transaction Wave ou Orange Money ?\n"
-        "(ex: WV-12345678 ou OM-98765432)"
+        "(ex: WV-12345678 ou OM-98765432)",
+        False,
     )
 
 
-def _traiter_annulation(boutique: Boutique, client: Client, langue: str) -> str:
+def _traiter_annulation(boutique: Boutique, client: Client, langue: str) -> tuple[str, bool]:
     """
     Annule la dernière commande en attente de paiement du client
     et remet les quantités en stock.
@@ -657,18 +673,20 @@ def _traiter_annulation(boutique: Boutique, client: Client, langue: str) -> str:
             if langue == "wo":
                 return (
                     f"Commande *{commande.numero_ref}* bi dafa bañ ✅\n"
-                    f"Stock bi daj nañ. Bëgg na ko ci kanam ?"
+                    f"Stock bi daj nañ. Bëgg na ko ci kanam ?",
+                    False,
                 )
             return (
                 f"Votre commande *{commande.numero_ref}* a bien été annulée ✅\n"
-                f"Le stock a été remis à jour. N'hésitez pas à recommander !"
+                f"Le stock a été remis à jour. N'hésitez pas à recommander !",
+                False,
             )
 
     except Exception as exc:
         logger.error("Erreur lors de l'annulation (client=%s) : %s", client.telephone, exc)
         if langue == "wo":
-            return "Baal ma, am na jafe-jafe ci annulation bi. Jëël ci kanam ndaw si."
-        return "Désolé, une erreur est survenue lors de l'annulation. Veuillez réessayer."
+            return ("Baal ma, am na jafe-jafe ci annulation bi. Jëël ci kanam ndaw si.", False)
+        return ("Désolé, une erreur est survenue lors de l'annulation. Veuillez réessayer.", False)
 
 
 # ─── Mode livraison — collecte d'adresse ──────────────────────────────────────
@@ -708,7 +726,7 @@ def _est_en_attente_adresse(boutique: Boutique, client: Client) -> Optional[Comm
     return None
 
 
-def _sauver_adresse_livraison(commande: Commande, adresse: str, client: Client) -> str:
+def _sauver_adresse_livraison(commande: Commande, adresse: str, client: Client) -> tuple[str, bool]:
     """Sauvegarde l'adresse de livraison et confirme au client."""
     commande.adresse_livraison = adresse.strip()
     commande.save(update_fields=["adresse_livraison", "updated_at"])
@@ -718,11 +736,13 @@ def _sauver_adresse_livraison(commande: Commande, adresse: str, client: Client) 
     if langue == "wo":
         return (
             f"Jërejëf ! Adresse bi dafa def ✅\n"
-            f"Commande *{commande.numero_ref}* — Jox ñu xaalis bi pour confirmer."
+            f"Commande *{commande.numero_ref}* — Jox ñu xaalis bi pour confirmer.",
+            False,
         )
     return (
         f"Adresse enregistrée ✅\n"
-        f"Commande *{commande.numero_ref}* — Envoyez votre preuve de paiement pour confirmer."
+        f"Commande *{commande.numero_ref}* — Envoyez votre preuve de paiement pour confirmer.",
+        False,
     )
 
 
@@ -763,7 +783,7 @@ def _est_en_attente_reference_paiement(boutique: Boutique, client: Client) -> Op
     return None
 
 
-def _sauver_reference_paiement(commande: Commande, reference: str, client: Client) -> str:
+def _sauver_reference_paiement(commande: Commande, reference: str, client: Client) -> tuple[str, bool]:
     """Sauvegarde la référence de transaction et notifie le commerçant."""
     ref = reference.strip()
 
@@ -798,11 +818,13 @@ def _sauver_reference_paiement(commande: Commande, reference: str, client: Clien
     if langue == "wo":
         return (
             f"Jërejëf ! Réf *{ref}* bi nanu ko def ✅\n"
-            f"Commande *{commande.numero_ref}* — Propriétaire bi dina xam-xam te dina la génne yoon."
+            f"Commande *{commande.numero_ref}* — Propriétaire bi dina xam-xam te dina la génne yoon.",
+            False,
         )
     return (
         f"Merci ! Référence *{ref}* bien enregistrée ✅\n"
-        f"Votre commande *{commande.numero_ref}* sera confirmée très bientôt."
+        f"Votre commande *{commande.numero_ref}* sera confirmée très bientôt.",
+        False,
     )
 
 
@@ -875,7 +897,7 @@ def _message_stock_insuffisant(produit: Produit, quantite: int, langue: str) -> 
     )
 
 
-def _message_erreur(langue: str) -> str:
+def _message_erreur(langue: str) -> tuple[str, bool]:
     if langue == "wo":
-        return "Baal ma, am na jafe-jafe tekki ci yoon. Jëël ci kanam ndaw si."
-    return "Désolé, une erreur technique est survenue. Veuillez réessayer dans quelques instants."
+        return ("Baal ma, am na jafe-jafe tekki ci yoon. Jëël ci kanam ndaw si.", False)
+    return ("Désolé, une erreur technique est survenue. Veuillez réessayer dans quelques instants.", False)

@@ -62,6 +62,7 @@ urlpatterns = [
     # Automatisation Configuration WhatsApp
     path("inscription-auto/", views.inscription_auto, name="inscription_auto"),
     path("attente-config/<slug:slug>/", views.attente_config, name="attente_config"),
+    path("config-infobip/<slug:slug>/", views.config_infobip, name="config_infobip"),
     path("verifier-config/<slug:slug>/", views.verifier_config_whatsapp, name="verifier_config_whatsapp"),
     path("automatisation/", views.tableau_bord_automatisation, name="automatisation"),
 

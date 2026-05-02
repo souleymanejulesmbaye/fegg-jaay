@@ -13,21 +13,21 @@
                 <div class="alert alert-info">
                     <h5>⚡ Configuration en 3 minutes</h5>
                     <p class="mb-0">
-                        Remplissez ce formulaire et recevez automatiquement 
+                        Remplissez ce formulaire et recevez automatiquement
                         vos instructions de configuration WhatsApp par email.
                     </p>
                 </div>
 
                 <form method="post">
                     {% csrf_token %}
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="{{ form.nom.id_for_label }}" class="form-label">
                                     🏪 Nom de la boutique *
                                 </label>
-                                {{ form.nom|add_class:"form-control" }}
+                                {{ form.nom }}
                                 {% if form.nom.errors %}
                                     <div class="text-danger">{{ form.nom.errors }}</div>
                                 {% endif %}
@@ -36,13 +36,13 @@
                                 </small>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="{{ form.ville.id_for_label }}" class="form-label">
                                     📍 Ville *
                                 </label>
-                                {{ form.ville|add_class:"form-control" }}
+                                {{ form.ville }}
                                 {% if form.ville.errors %}
                                     <div class="text-danger">{{ form.ville.errors }}</div>
                                 {% endif %}
@@ -56,7 +56,7 @@
                                 <label for="{{ form.telephone_wa.id_for_label }}" class="form-label">
                                     📱 Numéro WhatsApp pour les clients *
                                 </label>
-                                {{ form.telephone_wa|add_class:"form-control" }}
+                                {{ form.telephone_wa }}
                                 {% if form.telephone_wa.errors %}
                                     <div class="text-danger">{{ form.telephone_wa.errors }}</div>
                                 {% endif %}
@@ -65,13 +65,13 @@
                                 </small>
                             </div>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="{{ form.proprietaire_tel.id_for_label }}" class="form-label">
                                     👤 Votre numéro personnel *
                                 </label>
-                                {{ form.proprietaire_tel|add_class:"form-control" }}
+                                {{ form.proprietaire_tel }}
                                 {% if form.proprietaire_tel.errors %}
                                     <div class="text-danger">{{ form.proprietaire_tel.errors }}</div>
                                 {% endif %}
@@ -88,7 +88,7 @@
                                 <label for="{{ form.email.id_for_label }}" class="form-label">
                                     📧 Email professionnel *
                                 </label>
-                                {{ form.email|add_class:"form-control" }}
+                                {{ form.email }}
                                 {% if form.email.errors %}
                                     <div class="text-danger">{{ form.email.errors }}</div>
                                 {% endif %}
@@ -97,29 +97,41 @@
                                 </small>
                             </div>
                         </div>
-                        
-                        <div class="col-md-6">
+
+                        <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="{{ form.password.id_for_label }}" class="form-label">
                                     🔑 Mot de passe *
                                 </label>
-                                {{ form.password|add_class:"form-control" }}
+                                {{ form.password }}
                                 {% if form.password.errors %}
                                     <div class="text-danger">{{ form.password.errors }}</div>
                                 {% endif %}
                                 <small class="text-muted">
-                                    Pour accéder à votre dashboard
+                                    Min. 6 caractères
                                 </small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="{{ form.password_confirm.id_for_label }}" class="form-label">
+                                    🔑 Confirmer *
+                                </label>
+                                {{ form.password_confirm }}
+                                {% if form.password_confirm.errors %}
+                                    <div class="text-danger">{{ form.password_confirm.errors }}</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <div class="form-check">
-                            {{ form.accept_terms|add_class:"form-check-input" }}
+                            {{ form.accept_terms }}
                             <label class="form-check-label" for="{{ form.accept_terms.id_for_label }}">
-                                J'accepte les conditions d'utilisation et comprends que 
-                                la configuration WhatsApp nécessite un abonnement à 360dialog (€49/mois)
+                                J'accepte les conditions d'utilisation et comprends que
+                                la configuration WhatsApp nécessite un abonnement (~650 FCFA/mois)
                             </label>
                             {% if form.accept_terms.errors %}
                                 <div class="text-danger">{{ form.accept_terms.errors }}</div>
@@ -130,9 +142,10 @@
                     <div class="alert alert-warning">
                         <h6>💰 Coût de la configuration</h6>
                         <ul class="mb-0">
-                            <li>Abonnement 360dialog : €49/mois (~32.000 FCFA)</li>
-                            <li>Premier mois : Configuration offerte par Fëgg Jaay</li>
-                            <li>Annulation possible à tout moment</li>
+                            <li>Numéro WhatsApp : ~1$/mois (~650 FCFA)</li>
+                            <li>Messages : ~0.04$ par message (~260 FCFA)</li>
+                            <li>Facturation mensuelle via Fëgg Jaay</li>
+                            <li>Pas d'engagement, annulation possible à tout moment</li>
                         </ul>
                     </div>
 

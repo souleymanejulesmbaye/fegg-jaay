@@ -60,6 +60,44 @@ class Boutique(models.Model):
         help_text="True si le bot WhatsApp fonctionne correctement",
     )
 
+    # Configuration Infobip (multi-boutiques sur un compte Fëgg Jaay)
+    infobip_sender = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name="Numéro Infobip sender",
+        help_text="Numéro WhatsApp configuré dans Infobip pour cette boutique",
+    )
+    infobip_display_name = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Nom d'affichage WhatsApp",
+        help_text="Nom affiché sur WhatsApp (ex: SALMON SHOP)",
+    )
+    infobip_config_en_cours = models.BooleanField(
+        default=False,
+        verbose_name="Configuration Infobip en cours",
+        help_text="True si le commerçant est en train de configurer son numéro",
+    )
+    infobip_code_validation = models.CharField(
+        max_length=6,
+        blank=True,
+        verbose_name="Code de validation SMS",
+        help_text="Code envoyé par SMS pour valider le numéro",
+    )
+    infobip_code_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Expiration du code de validation",
+    )
+
+    # État de conversation WhatsApp du commerçant
+    conversation_etat = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="État de conversation",
+        help_text="Stocke l'état de la conversation WhatsApp du commerçant",
+    )
+
     # URL publique
     slug = models.SlugField(
         max_length=100,
@@ -141,6 +179,37 @@ class Boutique(models.Model):
             statut = "✓" if p.stock > p.stock_alerte else "⚠ BAS"
             lignes.append(f"- {p.nom}: {p.stock} unités [{statut}]")
         return "\n".join(lignes)
+
+    def generer_code_validation(self) -> str:
+        """Génère un code de validation à 6 chiffres pour Infobip."""
+        import random
+        import secrets
+        from datetime import timedelta
+
+        code = "".join(secrets.choice("0123456789") for _ in range(6))
+        self.infobip_code_validation = code
+        self.infobip_code_expires_at = timezone.now() + timedelta(minutes=15)
+        self.infobip_config_en_cours = True
+        self.save(update_fields=["infobip_code_validation", "infobip_code_expires_at", "infobip_config_en_cours"])
+        return code
+
+    def verifier_code_validation(self, code: str) -> bool:
+        """Vérifie si le code de validation est correct et non expiré."""
+        if not self.infobip_code_validation or not self.infobip_code_expires_at:
+            return False
+        if timezone.now() > self.infobip_code_expires_at:
+            return False
+        return self.infobip_code_validation == code
+
+    def get_etape_configuration(self) -> int:
+        """Retourne l'étape actuelle de configuration (1-4)."""
+        if self.wa_config_validee:
+            return 4
+        if self.infobip_sender and self.infobip_display_name:
+            return 3
+        if self.infobip_config_en_cours:
+            return 2
+        return 1
 
 
 # ─── Categorie ────────────────────────────────────────────────────────────────

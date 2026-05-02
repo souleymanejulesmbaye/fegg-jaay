@@ -41,7 +41,7 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 
 from boutiques.models import Boutique, Categorie, Commande, LigneCommande, Produit, Client, MessageLog, ZoneLivraison, PushSubscription
-from .forms import CommercantAutoConfigForm
+from .forms import CommercantAutoConfigForm, InfobipConfigForm, InfobipValidationForm
 
 logger = logging.getLogger(__name__)
 
@@ -1363,18 +1363,21 @@ def stats(request):
     })
 
 
-# ─── Automatisation Configuration WhatsApp ───────────────────────────────────
+# ─── Automatisation Configuration WhatsApp (Infobip) ─────────────────────────────
 
 def inscription_auto(request):
-    """Formulaire d'inscription automatisé pour les commerçants à distance."""
+    """Formulaire d'inscription automatisé pour les commerçants à distance avec Infobip."""
+    if request.user.is_authenticated:
+        return redirect("dashboard:accueil")
+
     if request.method == "POST":
         form = CommercantAutoConfigForm(request.POST)
         if form.is_valid():
             boutique = form.save()
-            
+
             # Envoyer les instructions de configuration WhatsApp
             envoyer_instructions_whatsapp(boutique)
-            
+
             messages.success(
                 request,
                 f"✅ Boutique {boutique.nom} créée ! "
@@ -1383,17 +1386,24 @@ def inscription_auto(request):
             return redirect("dashboard:attente_config", slug=boutique.slug)
     else:
         form = CommercantAutoConfigForm()
-    
+
     return render(request, "dashboard/inscription_auto.html", {"form": form})
 
 
 def attente_config(request, slug):
-    """Page d'attente avec instructions de configuration WhatsApp."""
+    """Page d'attente avec instructions de configuration WhatsApp Infobip."""
     boutique = get_object_or_404(Boutique, slug=slug)
-    
+
+    # Vérifier que l'utilisateur a accès à cette boutique
+    if request.user.is_authenticated and boutique.proprietaire != request.user and not request.user.is_superuser:
+        messages.error(request, "Vous n'avez pas accès à cette boutique.")
+        return redirect("dashboard:accueil")
+
+    etape_config = boutique.get_etape_configuration()
+
     return render(request, "dashboard/attente_config.html", {
         "boutique": boutique,
-        "etape_config": boutique.get_etape_configuration(),
+        "etape_config": etape_config,
     })
 
 
@@ -1401,9 +1411,9 @@ def envoyer_instructions_whatsapp(boutique: Boutique):
     """Envoie les instructions de configuration par email et WhatsApp."""
     from django.core.mail import send_mail
     from django.conf import settings
-    
+
     sujet = f"🚀 Configuration WhatsApp - {boutique.nom}"
-    
+
     instructions = f"""
 🎯 BIENVENUE SUR FEGG JAAY !
 
@@ -1411,30 +1421,35 @@ Votre boutique a été créée avec succès :
 📋 Nom : {boutique.nom}
 📱 WhatsApp : {boutique.telephone_wa}
 👤 Propriétaire : {boutique.proprietaire_tel}
+📍 Ville : {boutique.ville}
 
-📝 ÉTAPES DE CONFIGURATION WHATSAPP :
+📝 ÉTAPES DE CONFIGURATION WHATSAPP (Infobip) :
 
-1️⃣ Créez votre compte 360dialog :
-   🔗 https://app.360dialog.io/signup
-   💰 Coût : €49/mois (~32.000 FCFA)
+1️⃣ Connectez-vous à votre dashboard :
+   🔗 {settings.SITE_URL}/dashboard/
+   👤 Email : {boutique.proprietaire.email}
+   🔑 Mot de passe : celui que vous avez choisi
 
-2️⃣ Achetez votre numéro WhatsApp :
-   📱 Numéro souhaité : {boutique.telephone_wa}
-   ⏱️ Validation : 24-48h
+2️⃣ Configurez votre numéro WhatsApp :
+   - Allez dans "Configuration WhatsApp"
+   - Entrez le nom d'affichage (ex: SALMON SHOP)
+   - Cliquez sur "Démarrer la configuration"
 
-3️⃣ Récupérez vos identifiants :
-   🔑 Phone ID : [visible dans 360dialog]
-   🔑 Token API : [visible dans 360dialog]
+3️⃣ Validez votre numéro :
+   - Vous recevrez un code SMS
+   - Entrez le code dans le dashboard
+   - Votre numéro sera activé automatiquement
 
-4️⃣ Configurez votre boutique :
-   🔗 Connectez-vous à votre dashboard
-   📊 Menu "Configuration WhatsApp"
-   ✅ Entrez Phone ID + Token
+💰 COÛT :
+- Numéro WhatsApp : ~1$/mois (~650 FCFA)
+- Messages : ~0.04$ par message (~260 FCFA)
+- Facturation mensuelle via Fëgg Jaay
 
 🚀 UNE FOIS CONFIGURÉ :
 - Vos clients pourront vous joindre directement
 - Le bot répondra automatiquement 24/7
 - Vous recevrez les commandes par WhatsApp
+- Dashboard complet pour gérer votre activité
 
 📞 BESOIN D'AIDE ?
 - WhatsApp : +221778953918
@@ -1442,7 +1457,7 @@ Votre boutique a été créée avec succès :
 
 C'est parti ! 🎉
     """
-    
+
     # Envoyer par email
     send_mail(
         sujet,
@@ -1451,17 +1466,110 @@ C'est parti ! 🎉
         [boutique.proprietaire.email],
         fail_silently=False,
     )
-    
+
     logger.info("Instructions WhatsApp envoyées à %s", boutique.nom)
+
+
+@login_required
+def config_infobip(request, slug):
+    """Page de configuration Infobip pour une boutique."""
+    boutique = get_object_or_404(Boutique, slug=slug)
+
+    # Vérifier les droits
+    if boutique.proprietaire != request.user and not request.user.is_superuser:
+        messages.error(request, "Vous n'avez pas accès à cette boutique.")
+        return redirect("dashboard:accueil")
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+
+        if action == "demarrer_config":
+            # Démarrer la configuration : générer un code et envoyer SMS
+            code = boutique.generer_code_validation()
+
+            # Envoyer le code par SMS via Infobip
+            from django.conf import settings
+            import httpx
+
+            api_key = getattr(settings, "INFOBIP_API_KEY", "")
+            base_url = getattr(settings, "INFOBIP_BASE_URL", "api.infobip.com")
+            sender = getattr(settings, "INFOBIP_SENDER_NUMBER", "").lstrip("+")
+
+            if api_key and sender:
+                try:
+                    url = f"https://{base_url}/sms/2/text/advanced"
+                    headers = {
+                        "Authorization": f"App {api_key}",
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                    }
+                    payload = {
+                        "messages": [
+                            {
+                                "from": sender,
+                                "destinations": [{"to": boutique.telephone_wa.lstrip("+")}],
+                                "text": f"Votre code de validation Fëgg Jaay est : {code}. Valide 15 minutes.",
+                            }
+                        ]
+                    }
+                    with httpx.Client(timeout=10.0) as client:
+                        response = client.post(url, headers=headers, json=payload)
+                        response.raise_for_status()
+
+                    messages.success(
+                        request,
+                        f"✅ Code de validation envoyé par SMS au {boutique.telephone_wa}. "
+                        "Valide pendant 15 minutes."
+                    )
+                except Exception as exc:
+                    logger.error("Erreur envoi SMS Infobip : %s", exc)
+                    messages.error(request, "Erreur lors de l'envoi du SMS. Contactez le support.")
+            else:
+                messages.error(request, "Configuration Infobip non disponible sur la plateforme.")
+
+        elif action == "valider_code":
+            # Valider le code entré par l'utilisateur
+            form = InfobipValidationForm(request.POST)
+            if form.is_valid():
+                code = form.cleaned_data['code']
+                if boutique.verifier_code_validation(code):
+                    # Code valide : configurer la boutique
+                    boutique.infobip_sender = boutique.telephone_wa
+                    boutique.infobip_display_name = request.POST.get('display_name', boutique.nom)
+                    boutique.infobip_config_en_cours = False
+                    boutique.infobip_code_validation = ""
+                    boutique.infobip_code_expires_at = None
+                    boutique.wa_config_validee = True
+                    boutique.save()
+
+                    messages.success(
+                        request,
+                        f"🎉 Configuration validée ! Votre numéro {boutique.telephone_wa} est maintenant actif."
+                    )
+                    return redirect("dashboard:accueil")
+                else:
+                    messages.error(request, "❌ Code invalide ou expiré. Veuillez réessayer.")
+            else:
+                messages.error(request, "❌ Code invalide. Veuillez entrer 6 chiffres.")
+
+        elif action == "renvoyer_code":
+            # Renvoyer un nouveau code
+            code = boutique.generer_code_validation()
+            messages.success(request, f"✅ Nouveau code envoyé : {code}")
+
+    return render(request, "dashboard/config_infobip.html", {
+        "boutique": boutique,
+        "etape_config": boutique.get_etape_configuration(),
+    })
 
 
 @require_POST
 def verifier_config_whatsapp(request, slug):
     """Vérifie si la configuration WhatsApp est fonctionnelle."""
     boutique = get_object_or_404(Boutique, slug=slug)
-    
+
     from whatsapp.sender import envoyer_message_texte
-    
+
     try:
         # Test d'envoi de message
         success = envoyer_message_texte(
@@ -1469,14 +1577,14 @@ def verifier_config_whatsapp(request, slug):
             boutique.proprietaire_tel,
             f"🎉 Configuration validée ! Votre bot {boutique.nom} est actif."
         )
-        
+
         if success:
             boutique.wa_config_validee = True
             boutique.save()
             return JsonResponse({"success": True, "message": "✅ Configuration validée !"})
         else:
             return JsonResponse({"success": False, "message": "❌ Échec de l'envoi"})
-            
+
     except Exception as e:
         return JsonResponse({"success": False, "message": f"❌ Erreur: {str(e)}"})
 
@@ -1485,10 +1593,10 @@ def tableau_bord_automatisation(request):
     """Tableau de bord pour suivre les configurations en cours."""
     if not request.user.is_superuser:
         return redirect("dashboard:login")
-    
+
     boutiques_en_attente = Boutique.objects.filter(wa_config_validee=False, actif=True)
     boutiques_actives = Boutique.objects.filter(wa_config_validee=True, actif=True)
-    
+
     return render(request, "dashboard/automatisation.html", {
         "en_attente": boutiques_en_attente,
         "actives": boutiques_actives,
